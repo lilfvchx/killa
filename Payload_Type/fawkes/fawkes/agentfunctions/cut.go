@@ -7,7 +7,7 @@ import (
 )
 
 func init() {
-	agentstructs.AllPayloadData.Get("fawkes").AddCommand(agentstructs.Command{
+	agentstructs.AllPayloadData.Get("killa").AddCommand(agentstructs.Command{
 		Name:                "cut",
 		Description:         "Extract fields or character ranges from file lines. Like Unix cut — supports field and character modes with custom delimiters.",
 		HelpString:          "cut -path /etc/passwd -delimiter : -fields 1,7\ncut -path data.csv -delimiter , -fields 2-4\ncut -path file.txt -chars 1-10",

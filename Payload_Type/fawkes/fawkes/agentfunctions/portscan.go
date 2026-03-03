@@ -7,7 +7,7 @@ import (
 )
 
 func init() {
-	agentstructs.AllPayloadData.Get("fawkes").AddCommand(agentstructs.Command{
+	agentstructs.AllPayloadData.Get("killa").AddCommand(agentstructs.Command{
 		Name:                "port-scan",
 		Description:         "TCP connect scan for network service discovery",
 		HelpString:          "port-scan -hosts <IPs/CIDRs> [-ports <ports>] [-timeout <seconds>] [-concurrency <num>]",

@@ -7,7 +7,7 @@ import (
 )
 
 func init() {
-	agentstructs.AllPayloadData.Get("fawkes").AddCommand(agentstructs.Command{
+	agentstructs.AllPayloadData.Get("killa").AddCommand(agentstructs.Command{
 		Name:                "reg-save",
 		Description:         "Export registry hives to files for offline credential extraction. Use 'creds' action to export SAM+SECURITY+SYSTEM in one step. Requires SYSTEM privileges.",
 		HelpString:          "reg-save -action <save|creds> [-hive HKLM] [-path SAM] [-output C:\\Temp\\sam.hiv]",

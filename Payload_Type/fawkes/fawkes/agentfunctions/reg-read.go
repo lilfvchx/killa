@@ -9,7 +9,7 @@ import (
 )
 
 func init() {
-	agentstructs.AllPayloadData.Get("fawkes").AddCommand(agentstructs.Command{
+	agentstructs.AllPayloadData.Get("killa").AddCommand(agentstructs.Command{
 		Name:                "reg-read",
 		Description:         "Read a value from the Windows Registry. Supports HKLM, HKCU, HKCR, HKU, HKCC hives and all standard value types (REG_SZ, REG_DWORD, REG_BINARY, REG_EXPAND_SZ, REG_MULTI_SZ, REG_QWORD).",
 		HelpString:          "reg-read -hive HKLM -path \"SOFTWARE\\Microsoft\\Windows\\CurrentVersion\" -name \"ProgramFilesDir\"",

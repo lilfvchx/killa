@@ -8,7 +8,7 @@ import (
 )
 
 func init() {
-	agentstructs.AllPayloadData.Get("fawkes").AddCommand(agentstructs.Command{
+	agentstructs.AllPayloadData.Get("killa").AddCommand(agentstructs.Command{
 		Name:                "route",
 		Description:         "route - Display the system routing table. Windows: GetIpForwardTable API. Linux: /proc/net/route + /proc/net/ipv6_route. macOS: netstat -rn.",
 		HelpString:          "route",

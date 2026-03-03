@@ -7,7 +7,7 @@ import (
 )
 
 func init() {
-	agentstructs.AllPayloadData.Get("fawkes").AddCommand(agentstructs.Command{
+	agentstructs.AllPayloadData.Get("killa").AddCommand(agentstructs.Command{
 		Name:                "wdigest",
 		Description:         "Manage WDigest plaintext credential caching in LSASS. Enable to capture cleartext passwords at next interactive logon (Windows 10+ disables WDigest by default).",
 		HelpString:          "wdigest -action <status|enable|disable>",

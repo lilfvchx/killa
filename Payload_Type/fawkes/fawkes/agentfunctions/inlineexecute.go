@@ -123,7 +123,7 @@ func convertToGoffloaderFormat(argString string) ([]string, error) {
 }
 
 func init() {
-	agentstructs.AllPayloadData.Get("fawkes").AddCommand(agentstructs.Command{
+	agentstructs.AllPayloadData.Get("killa").AddCommand(agentstructs.Command{
 		Name:                "inline-execute",
 		Description:         "Execute a Beacon Object File (BOF/COFF) in memory",
 		HelpString:          "inline-execute",

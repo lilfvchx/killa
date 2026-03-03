@@ -7,7 +7,7 @@ import (
 )
 
 func init() {
-	agentstructs.AllPayloadData.Get("fawkes").AddCommand(agentstructs.Command{
+	agentstructs.AllPayloadData.Get("killa").AddCommand(agentstructs.Command{
 		Name:                "crontab",
 		Description:         "List, add, or remove cron jobs for persistence (T1053.003)",
 		HelpString:          "crontab -action <list|add|remove> [-entry <cron line>] [-program <path>] [-schedule <cron schedule>] [-user <username>]",

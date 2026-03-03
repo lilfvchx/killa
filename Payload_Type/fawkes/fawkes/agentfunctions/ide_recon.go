@@ -3,7 +3,7 @@ package agentfunctions
 import agentstructs "github.com/MythicMeta/MythicContainer/agent_structs"
 
 func init() {
-	agentstructs.AllPayloadData.Get("fawkes").AddCommand(agentstructs.Command{
+	agentstructs.AllPayloadData.Get("killa").AddCommand(agentstructs.Command{
 		Name:                "ide-recon",
 		Description:         "Enumerate IDE configurations — VS Code and JetBrains extensions, remote SSH hosts, recent projects, data sources, and secrets",
 		HelpString:          "ide-recon -action <vscode|jetbrains|all> [-user <filter>]",

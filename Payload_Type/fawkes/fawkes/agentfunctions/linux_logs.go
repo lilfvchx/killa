@@ -7,7 +7,7 @@ import (
 )
 
 func init() {
-	agentstructs.AllPayloadData.Get("fawkes").AddCommand(agentstructs.Command{
+	agentstructs.AllPayloadData.Get("killa").AddCommand(agentstructs.Command{
 		Name:                "linux-logs",
 		Description:         "List, read, clear, or tamper with Linux log files and login records (T1070.002)",
 		HelpString:          "linux-logs -action <list|read|logins|clear|truncate|shred> [-file <path>] [-search <filter>] [-lines <count>] [-user <name>]",

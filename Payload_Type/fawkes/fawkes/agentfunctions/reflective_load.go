@@ -7,7 +7,7 @@ import (
 )
 
 func init() {
-	agentstructs.AllPayloadData.Get("fawkes").AddCommand(agentstructs.Command{
+	agentstructs.AllPayloadData.Get("killa").AddCommand(agentstructs.Command{
 		Name:                "reflective-load",
 		Description:         "Load a native PE (DLL) from memory into the current process without touching disk. Supports calling exported functions. Uses manual PE mapping: section copying, relocation fixups, import resolution, and DllMain invocation.",
 		HelpString:          "reflective-load -dll_b64 <base64_dll> [-function <export_name>]",

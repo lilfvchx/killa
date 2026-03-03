@@ -10,7 +10,7 @@ import (
 )
 
 func init() {
-	agentstructs.AllPayloadData.Get("fawkes").AddCommand(agentstructs.Command{
+	agentstructs.AllPayloadData.Get("killa").AddCommand(agentstructs.Command{
 		Name:                "module-stomping",
 		Description:         "Inject shellcode by overwriting a legitimate DLL's .text section in a remote process. Shellcode executes from signed DLL address space, bypassing private-memory detection.",
 		HelpString:          "module-stomping",

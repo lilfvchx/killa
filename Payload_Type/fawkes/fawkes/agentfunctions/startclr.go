@@ -9,7 +9,7 @@ import (
 )
 
 func init() {
-	agentstructs.AllPayloadData.Get("fawkes").AddCommand(agentstructs.Command{
+	agentstructs.AllPayloadData.Get("killa").AddCommand(agentstructs.Command{
 		Name:                "start-clr",
 		Description:         "Initialize the .NET CLR runtime with optional AMSI/ETW patching",
 		HelpString:          "start-clr",

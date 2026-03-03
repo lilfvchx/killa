@@ -7,7 +7,7 @@ import (
 )
 
 func init() {
-	agentstructs.AllPayloadData.Get("fawkes").AddCommand(agentstructs.Command{
+	agentstructs.AllPayloadData.Get("killa").AddCommand(agentstructs.Command{
 		Name:                "diff",
 		Description:         "Compare two files and show differences in unified diff format.",
 		HelpString:          "diff -file1 /etc/passwd -file2 /tmp/passwd.bak\ndiff -file1 config.old -file2 config.new -context 5",

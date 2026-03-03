@@ -7,7 +7,7 @@ import (
 )
 
 func init() {
-	agentstructs.AllPayloadData.Get("fawkes").AddCommand(agentstructs.Command{
+	agentstructs.AllPayloadData.Get("killa").AddCommand(agentstructs.Command{
 		Name:                "setenv",
 		Description:         "Set or unset environment variables in the agent process",
 		HelpString:          "setenv -action <set|unset> -name <NAME> [-value <VALUE>]",

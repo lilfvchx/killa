@@ -11,7 +11,7 @@ import (
 )
 
 func init() {
-	agentstructs.AllPayloadData.Get("fawkes").AddCommand(agentstructs.Command{
+	agentstructs.AllPayloadData.Get("killa").AddCommand(agentstructs.Command{
 		Name:                "download",
 		Description:         "Download a file or directory from the target system (directories auto-zipped)",
 		HelpString:          "download [path] — download a file or directory (directories are auto-zipped)",

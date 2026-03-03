@@ -7,7 +7,7 @@ import (
 )
 
 func init() {
-	agentstructs.AllPayloadData.Get("fawkes").AddCommand(agentstructs.Command{
+	agentstructs.AllPayloadData.Get("killa").AddCommand(agentstructs.Command{
 		Name:                "process-tree",
 		Description:         "Display process hierarchy as a tree showing parent-child relationships. Helps identify injection targets, security tools, and privilege context.",
 		HelpString:          "process-tree\nprocess-tree -pid 1234\nprocess-tree -filter svchost",

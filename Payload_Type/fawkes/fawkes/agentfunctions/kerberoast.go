@@ -8,7 +8,7 @@ import (
 )
 
 func init() {
-	agentstructs.AllPayloadData.Get("fawkes").AddCommand(agentstructs.Command{
+	agentstructs.AllPayloadData.Get("killa").AddCommand(agentstructs.Command{
 		Name:                "kerberoast",
 		Description:         "Request TGS tickets for SPN accounts and extract hashes for offline cracking. Auto-enumerates kerberoastable accounts via LDAP or targets a specific SPN.",
 		HelpString:          "kerberoast -server 192.168.1.1 -username user@domain.local -password pass\nkerberoast -server dc01 -realm DOMAIN.LOCAL -username user@domain.local -password pass -spn MSSQLSvc/srv.domain.local",

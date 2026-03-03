@@ -8,7 +8,7 @@ import (
 )
 
 func init() {
-	agentstructs.AllPayloadData.Get("fawkes").AddCommand(agentstructs.Command{
+	agentstructs.AllPayloadData.Get("killa").AddCommand(agentstructs.Command{
 		Name:                "net-group",
 		Description:         "Enumerate AD group memberships via LDAP — list groups, recursive members, user group lookup, and privileged group enumeration.",
 		HelpString:          "net-group -action privileged -server 192.168.1.1 -username user@domain -password pass\nnet-group -action members -server dc01 -group \"Domain Admins\" -username user@domain -password pass\nnet-group -action user -server dc01 -user eddard.stark -username user@domain -password pass",

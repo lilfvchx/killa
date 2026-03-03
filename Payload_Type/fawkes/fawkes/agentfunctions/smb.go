@@ -8,7 +8,7 @@ import (
 )
 
 func init() {
-	agentstructs.AllPayloadData.Get("fawkes").AddCommand(agentstructs.Command{
+	agentstructs.AllPayloadData.Get("killa").AddCommand(agentstructs.Command{
 		Name:                "smb",
 		Description:         "SMB file operations on remote shares. List shares, browse directories, read/write/delete files via SMB2 with NTLM authentication. Supports pass-the-hash.",
 		HelpString:          "smb -action shares -host 192.168.1.1 -username user -password pass -domain DOMAIN\nsmb -action ls -host 192.168.1.1 -share C$ -username admin -hash aad3b435b51404ee:8846f7eaee8fb117 -domain DOMAIN\nsmb -action cat -host 192.168.1.1 -share C$ -path Users/Public/file.txt -username admin -password pass",

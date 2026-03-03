@@ -7,7 +7,7 @@ import (
 )
 
 func init() {
-	agentstructs.AllPayloadData.Get("fawkes").AddCommand(agentstructs.Command{
+	agentstructs.AllPayloadData.Get("killa").AddCommand(agentstructs.Command{
 		Name:                "hexdump",
 		Description:         "Display hex dump of file contents in xxd format. Binary analysis without downloading the file.",
 		HelpString:          "hexdump -path /tmp/payload.bin\nhexdump -path C:\\Windows\\System32\\cmd.exe -offset 0 -length 512\nhexdump -path /etc/shadow -offset 100 -length 64",

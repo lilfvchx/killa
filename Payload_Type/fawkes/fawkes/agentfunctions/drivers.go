@@ -5,7 +5,7 @@ import (
 )
 
 func init() {
-	agentstructs.AllPayloadData.Get("fawkes").AddCommand(agentstructs.Command{
+	agentstructs.AllPayloadData.Get("killa").AddCommand(agentstructs.Command{
 		Name:                "drivers",
 		Description:         "drivers [-filter name] - Enumerate loaded kernel drivers and modules. Windows: EnumDeviceDrivers API. Linux: /proc/modules. macOS: kext/system extension enumeration.",
 		HelpString:          "drivers [-filter name]",

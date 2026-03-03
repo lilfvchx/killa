@@ -7,7 +7,7 @@ import (
 )
 
 func init() {
-	agentstructs.AllPayloadData.Get("fawkes").AddCommand(agentstructs.Command{
+	agentstructs.AllPayloadData.Get("killa").AddCommand(agentstructs.Command{
 		Name:                "ntdll-unhook",
 		Description:         "Remove EDR inline hooks from DLLs by restoring the .text section from a clean on-disk copy. Supports ntdll.dll, kernel32.dll, kernelbase.dll, advapi32.dll, or all at once.",
 		HelpString:          "ntdll-unhook [-action unhook|check] [-dll ntdll.dll|kernel32.dll|kernelbase.dll|advapi32.dll|all]",

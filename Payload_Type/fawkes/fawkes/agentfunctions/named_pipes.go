@@ -7,7 +7,7 @@ import (
 )
 
 func init() {
-	agentstructs.AllPayloadData.Get("fawkes").AddCommand(agentstructs.Command{
+	agentstructs.AllPayloadData.Get("killa").AddCommand(agentstructs.Command{
 		Name:                "named-pipes",
 		Description:         "List named pipes on the system (useful for IPC discovery and pipe-based privilege escalation recon)",
 		HelpString:          "named-pipes [-filter <pattern>]",

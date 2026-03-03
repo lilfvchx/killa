@@ -7,7 +7,7 @@ import (
 )
 
 func init() {
-	agentstructs.AllPayloadData.Get("fawkes").AddCommand(agentstructs.Command{
+	agentstructs.AllPayloadData.Get("killa").AddCommand(agentstructs.Command{
 		Name:                "screenshot",
 		Description:         "Capture a screenshot of the current desktop session. Captures all monitors.",
 		HelpString:          "screenshot",

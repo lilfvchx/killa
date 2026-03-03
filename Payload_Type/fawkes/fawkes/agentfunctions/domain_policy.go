@@ -8,7 +8,7 @@ import (
 )
 
 func init() {
-	agentstructs.AllPayloadData.Get("fawkes").AddCommand(agentstructs.Command{
+	agentstructs.AllPayloadData.Get("killa").AddCommand(agentstructs.Command{
 		Name:                "domain-policy",
 		Description:         "Enumerate AD domain password policy, lockout policy, and fine-grained password policies (FGPPs) via LDAP. Essential pre-spray reconnaissance.",
 		HelpString:          "domain-policy -action all -server dc01 -username user@corp.local -password Pass123\ndomain-policy -action lockout -server 192.168.1.1 -username admin@corp.local -password Admin1\ndomain-policy -action fgpp -server dc01 -username user@corp.local -password Pass1 -use_tls true",

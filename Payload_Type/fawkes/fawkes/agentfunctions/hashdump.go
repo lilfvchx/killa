@@ -6,7 +6,7 @@ import (
 )
 
 func init() {
-	agentstructs.AllPayloadData.Get("fawkes").AddCommand(agentstructs.Command{
+	agentstructs.AllPayloadData.Get("killa").AddCommand(agentstructs.Command{
 		Name:                "hashdump",
 		Description:         "Extract local account NTLM hashes from the SAM database. Reads registry directly (no file drop). Requires SYSTEM privileges — use 'getsystem' first.",
 		HelpString:          "hashdump",

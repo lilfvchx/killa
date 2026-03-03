@@ -11,7 +11,7 @@ import (
 )
 
 func init() {
-	agentstructs.AllPayloadData.Get("fawkes").AddCommand(agentstructs.Command{
+	agentstructs.AllPayloadData.Get("killa").AddCommand(agentstructs.Command{
 		Name:                "socks",
 		Description:         "Start or stop a SOCKS5 proxy through this callback",
 		HelpString:          "socks start [port]  /  socks stop [port]",

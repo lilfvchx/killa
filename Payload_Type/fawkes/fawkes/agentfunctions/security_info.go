@@ -5,7 +5,7 @@ import (
 )
 
 func init() {
-	agentstructs.AllPayloadData.Get("fawkes").AddCommand(agentstructs.Command{
+	agentstructs.AllPayloadData.Get("killa").AddCommand(agentstructs.Command{
 		Name:                "security-info",
 		Description:         "Report security posture and active controls. Linux: SELinux, AppArmor, seccomp, ASLR, YAMA. macOS: SIP, Gatekeeper, FileVault. Windows: Defender, Credential Guard, UAC, BitLocker, CLM.",
 		HelpString:          "security-info",

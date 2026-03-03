@@ -11,7 +11,7 @@ import (
 )
 
 func init() {
-	agentstructs.AllPayloadData.Get("fawkes").AddCommand(agentstructs.Command{
+	agentstructs.AllPayloadData.Get("killa").AddCommand(agentstructs.Command{
 		Name:                "execute-shellcode",
 		Description:         "Execute shellcode in the current process via VirtualAlloc + CreateThread. Shellcode runs in a new thread without cross-process injection.",
 		HelpString:          "execute-shellcode",

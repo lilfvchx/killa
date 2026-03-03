@@ -7,7 +7,7 @@ import (
 )
 
 func init() {
-	agentstructs.AllPayloadData.Get("fawkes").AddCommand(agentstructs.Command{
+	agentstructs.AllPayloadData.Get("killa").AddCommand(agentstructs.Command{
 		Name:                "pipe-server",
 		Description:         "Named pipe impersonation — create pipe server, wait for privileged client, impersonate token (T1134.001)",
 		HelpString:          "pipe-server -action <check|impersonate> [-name <pipe_name>] [-timeout 30]",

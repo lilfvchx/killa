@@ -7,7 +7,7 @@ import (
 )
 
 func init() {
-	agentstructs.AllPayloadData.Get("fawkes").AddCommand(agentstructs.Command{
+	agentstructs.AllPayloadData.Get("killa").AddCommand(agentstructs.Command{
 		Name:                "wmi",
 		Description:         "Execute WMI queries and process creation via COM API (T1047)",
 		HelpString:          "wmi -action <execute|query|process-list|os-info> [-target <host>] [-command <cmd>] [-query <wmic_query>]",

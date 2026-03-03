@@ -5,7 +5,7 @@ import (
 )
 
 func init() {
-	agentstructs.AllPayloadData.Get("fawkes").AddCommand(agentstructs.Command{
+	agentstructs.AllPayloadData.Get("killa").AddCommand(agentstructs.Command{
 		Name:                "sysinfo",
 		Description:         "sysinfo - Collect comprehensive system information: OS version, hardware, memory, uptime, domain membership, .NET versions (Windows), SELinux/SIP status, virtualization detection.",
 		HelpString:          "sysinfo",

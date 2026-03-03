@@ -5,7 +5,7 @@ import (
 )
 
 func init() {
-	agentstructs.AllPayloadData.Get("fawkes").AddCommand(agentstructs.Command{
+	agentstructs.AllPayloadData.Get("killa").AddCommand(agentstructs.Command{
 		Name:                "read-memory",
 		Description:         "Read bytes from a DLL function address. Usage: read-memory <dll_name> <function_name> <start_index> <num_bytes>",
 		HelpString:          "read-memory amsi AmsiScanBuffer 0 8",

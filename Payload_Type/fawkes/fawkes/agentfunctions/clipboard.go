@@ -5,7 +5,7 @@ import (
 )
 
 func init() {
-	agentstructs.AllPayloadData.Get("fawkes").AddCommand(agentstructs.Command{
+	agentstructs.AllPayloadData.Get("killa").AddCommand(agentstructs.Command{
 		Name:                "clipboard",
 		Description:         "Read, write, or continuously monitor clipboard contents (text only). Windows: native API, Linux: xclip/xsel/wl-paste, macOS: pbpaste/pbcopy.",
 		HelpString:          "clipboard -action read\nclipboard -action write -data \"text\"\nclipboard -action monitor [-interval 3]\nclipboard -action dump\nclipboard -action stop",

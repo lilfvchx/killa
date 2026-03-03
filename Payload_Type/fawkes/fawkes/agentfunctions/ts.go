@@ -5,7 +5,7 @@ import (
 )
 
 func init() {
-	agentstructs.AllPayloadData.Get("fawkes").AddCommand(agentstructs.Command{
+	agentstructs.AllPayloadData.Get("killa").AddCommand(agentstructs.Command{
 		Name:                "ts",
 		Description:         "ts [-a] [-i PID] - List threads in processes. By default shows only alertable threads (Suspended/ExecutionDelay). Use -a for all threads. Use -i to filter by specific PID.",
 		HelpString:          "ts [-a] [-i PID]",

@@ -7,7 +7,7 @@ import (
 )
 
 func init() {
-	agentstructs.AllPayloadData.Get("fawkes").AddCommand(agentstructs.Command{
+	agentstructs.AllPayloadData.Get("killa").AddCommand(agentstructs.Command{
 		Name:                "config",
 		Description:         "View or modify runtime agent configuration (sleep, jitter, kill date, working hours)",
 		HelpString:          "config [-action show|set] [-key sleep|jitter|killdate|working_hours_start|working_hours_end|working_days] [-value <value>]",

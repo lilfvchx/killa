@@ -5,7 +5,7 @@ import (
 )
 
 func init() {
-	agentstructs.AllPayloadData.Get("fawkes").AddCommand(agentstructs.Command{
+	agentstructs.AllPayloadData.Get("killa").AddCommand(agentstructs.Command{
 		Name:                "debug-detect",
 		Description:         "Detect attached debuggers, analysis tools, and instrumentation (IsDebuggerPresent, NtQueryInformationProcess, PEB, DR registers, TracerPid, known debugger processes).",
 		HelpString:          "debug-detect",

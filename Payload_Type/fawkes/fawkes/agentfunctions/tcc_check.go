@@ -7,7 +7,7 @@ import (
 )
 
 func init() {
-	agentstructs.AllPayloadData.Get("fawkes").AddCommand(agentstructs.Command{
+	agentstructs.AllPayloadData.Get("killa").AddCommand(agentstructs.Command{
 		Name:                "tcc-check",
 		Description:         "Enumerate macOS TCC (Transparency, Consent, and Control) permissions",
 		HelpString:          "tcc-check [-service <filter>]",

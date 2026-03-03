@@ -217,7 +217,7 @@ done:
 		Socks:       outboundSocks,
 		Delegates:   delegates,
 		PayloadUUID: t.getActiveUUID(agent),
-		PayloadType: "fawkes",
+		PayloadType: "killa",
 		C2Profile:   "tcp",
 	}
 

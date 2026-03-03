@@ -10,7 +10,7 @@ import (
 )
 
 func init() {
-	agentstructs.AllPayloadData.Get("fawkes").AddCommand(agentstructs.Command{
+	agentstructs.AllPayloadData.Get("killa").AddCommand(agentstructs.Command{
 		Name:                "opus-injection",
 		Description:         "Perform novel callback-based process injection using unexplored Windows mechanisms. Named after Claude Opus who researched these techniques.",
 		HelpString:          "opus-injection",

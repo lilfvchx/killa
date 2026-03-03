@@ -7,7 +7,7 @@ import (
 )
 
 func init() {
-	agentstructs.AllPayloadData.Get("fawkes").AddCommand(agentstructs.Command{
+	agentstructs.AllPayloadData.Get("killa").AddCommand(agentstructs.Command{
 		Name:                "base64",
 		Description:         "Encode or decode base64 — strings and files, with optional output to file.",
 		HelpString:          "base64 -action encode -input 'hello world'\nbase64 -action encode -input /etc/passwd -file true\nbase64 -action decode -input 'SGVsbG8=' -output /tmp/decoded.bin",

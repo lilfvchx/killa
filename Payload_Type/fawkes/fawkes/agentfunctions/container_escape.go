@@ -7,7 +7,7 @@ import (
 )
 
 func init() {
-	agentstructs.AllPayloadData.Get("fawkes").AddCommand(agentstructs.Command{
+	agentstructs.AllPayloadData.Get("killa").AddCommand(agentstructs.Command{
 		Name:                "container-escape",
 		Description:         "Container escape — enumerate and exploit breakout vectors: Docker socket, cgroup release_agent, nsenter, host device mount (T1611)",
 		HelpString:          "container-escape -action <check|docker-sock|cgroup|nsenter|mount-host> [-command '<cmd>'] [-image alpine] [-path /dev/sda1]",

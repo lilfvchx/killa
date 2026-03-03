@@ -7,7 +7,7 @@ import (
 )
 
 func init() {
-	agentstructs.AllPayloadData.Get("fawkes").AddCommand(agentstructs.Command{
+	agentstructs.AllPayloadData.Get("killa").AddCommand(agentstructs.Command{
 		Name:                "chmod",
 		Description:         "Modify file and directory permissions (octal or symbolic notation). Supports recursive directory operations.",
 		HelpString:          "chmod -path /tmp/payload -mode 755\nchmod -path ./script.sh -mode +x\nchmod -path /var/data -mode 644 -recursive true\nchmod -path /tmp -mode u+rwx,go+rx",

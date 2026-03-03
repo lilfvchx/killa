@@ -1,7 +1,7 @@
 package main
 
 import (
-	c2functions "MyContainer/slack/c2functions"
+	c2functions "MyContainer/c2functions"
 	"github.com/MythicMeta/MythicContainer"
 )
 

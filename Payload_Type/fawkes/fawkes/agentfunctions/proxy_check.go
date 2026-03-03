@@ -5,7 +5,7 @@ import (
 )
 
 func init() {
-	agentstructs.AllPayloadData.Get("fawkes").AddCommand(agentstructs.Command{
+	agentstructs.AllPayloadData.Get("killa").AddCommand(agentstructs.Command{
 		Name:                "proxy-check",
 		Description:         "Detect system proxy settings from environment variables, OS configuration, and registry (Windows). Optionally test proxy connectivity.",
 		HelpString:          "proxy-check\nproxy-check -test_url http://example.com",

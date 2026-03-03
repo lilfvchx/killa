@@ -7,7 +7,7 @@ import (
 )
 
 func init() {
-	agentstructs.AllPayloadData.Get("fawkes").AddCommand(agentstructs.Command{
+	agentstructs.AllPayloadData.Get("killa").AddCommand(agentstructs.Command{
 		Name:                "env-scan",
 		Description:         "Scan process environment variables for leaked credentials, API keys, and secrets (T1057/T1552.001)",
 		HelpString:          "env-scan [-pid <PID>] [-filter <pattern>]",

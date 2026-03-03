@@ -10,7 +10,7 @@ import (
 )
 
 func init() {
-	agentstructs.AllPayloadData.Get("fawkes").AddCommand(agentstructs.Command{
+	agentstructs.AllPayloadData.Get("killa").AddCommand(agentstructs.Command{
 		Name:                "thread-hijack",
 		Description:         "Inject shellcode via thread execution hijacking. Suspends an existing thread, redirects RIP to shellcode, and resumes. Avoids CreateRemoteThread detection.",
 		HelpString:          "thread-hijack",

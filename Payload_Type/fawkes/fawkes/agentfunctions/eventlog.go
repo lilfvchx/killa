@@ -7,7 +7,7 @@ import (
 )
 
 func init() {
-	agentstructs.AllPayloadData.Get("fawkes").AddCommand(agentstructs.Command{
+	agentstructs.AllPayloadData.Get("killa").AddCommand(agentstructs.Command{
 		Name:                "eventlog",
 		Description:         "Manage Windows Event Logs — list channels, query events, clear logs, get channel info. Uses wevtapi.dll (modern Event Log API).",
 		HelpString:          "eventlog -action <list|query|clear|info> [-channel <name>] [-event_id <id>] [-filter <xpath|keyword>] [-count <max>]",

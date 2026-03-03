@@ -5,7 +5,7 @@ import (
 )
 
 func init() {
-	agentstructs.AllPayloadData.Get("fawkes").AddCommand(agentstructs.Command{
+	agentstructs.AllPayloadData.Get("killa").AddCommand(agentstructs.Command{
 		Name:                "usn-jrnl",
 		Description:         "Query or delete the NTFS USN Change Journal for anti-forensics. Destroys file operation history used in forensic timeline reconstruction.",
 		HelpString:          "usn-jrnl -action query\nusn-jrnl -action recent [-volume D:]\nusn-jrnl -action delete [-volume C:]",

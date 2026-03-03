@@ -7,7 +7,7 @@ import (
 )
 
 func init() {
-	agentstructs.AllPayloadData.Get("fawkes").AddCommand(agentstructs.Command{
+	agentstructs.AllPayloadData.Get("killa").AddCommand(agentstructs.Command{
 		Name:                "secure-delete",
 		Description:         "Securely delete files by overwriting with random data before removal. Prevents forensic recovery.",
 		HelpString:          "secure-delete -path /tmp/payload.bin\nsecure-delete -path C:\\Users\\setup\\tool.exe -passes 5\nsecure-delete -path /tmp/artifacts",

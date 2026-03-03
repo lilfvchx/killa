@@ -7,7 +7,7 @@ import (
 )
 
 func init() {
-	agentstructs.AllPayloadData.Get("fawkes").AddCommand(agentstructs.Command{
+	agentstructs.AllPayloadData.Get("killa").AddCommand(agentstructs.Command{
 		Name:                "wc",
 		Description:         "Count lines, words, characters, and bytes in files. Directory mode with glob pattern support.",
 		HelpString:          "wc -path /etc/passwd\nwc -path C:\\Users\\setup\\data.csv\nwc -path /var/log -pattern *.log",

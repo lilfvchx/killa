@@ -5,7 +5,7 @@ import (
 )
 
 func init() {
-	agentstructs.AllPayloadData.Get("fawkes").AddCommand(agentstructs.Command{
+	agentstructs.AllPayloadData.Get("killa").AddCommand(agentstructs.Command{
 		Name:                "write-memory",
 		Description:         "Write bytes to a DLL function address. Usage: write-memory <dll_name> <function_name> <start_index> <hex_bytes>",
 		HelpString:          "write-memory amsi AmsiScanBuffer 0 909090",

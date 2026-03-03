@@ -5,7 +5,7 @@ import (
 )
 
 func init() {
-	agentstructs.AllPayloadData.Get("fawkes").AddCommand(agentstructs.Command{
+	agentstructs.AllPayloadData.Get("killa").AddCommand(agentstructs.Command{
 		Name:                "ssh-agent",
 		Description:         "Enumerate SSH agent sockets and list loaded keys for lateral movement (T1552.004)",
 		HelpString:          "ssh-agent [-action <list|enum>] [-socket /path/to/agent.sock]",

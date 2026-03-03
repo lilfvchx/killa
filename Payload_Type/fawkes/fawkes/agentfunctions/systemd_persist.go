@@ -7,7 +7,7 @@ import (
 )
 
 func init() {
-	agentstructs.AllPayloadData.Get("fawkes").AddCommand(agentstructs.Command{
+	agentstructs.AllPayloadData.Get("killa").AddCommand(agentstructs.Command{
 		Name:                "systemd-persist",
 		Description:         "Install, remove, or list systemd service persistence. Creates user or system service units that restart on failure and persist across reboots.",
 		HelpString:          "systemd-persist -action install -name backdoor -exec_start /tmp/payload\nsystemd-persist -action list\nsystemd-persist -action remove -name backdoor",

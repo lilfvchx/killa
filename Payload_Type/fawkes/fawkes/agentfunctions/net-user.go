@@ -8,7 +8,7 @@ import (
 )
 
 func init() {
-	agentstructs.AllPayloadData.Get("fawkes").AddCommand(agentstructs.Command{
+	agentstructs.AllPayloadData.Get("killa").AddCommand(agentstructs.Command{
 		Name:                "net-user",
 		Description:         "Manage local user accounts and group membership via Win32 API (T1136.001, T1098)",
 		HelpString:          "net-user -action <add|delete|info|password|group-add|group-remove> -username <name> [-password <pass>] [-group <group>]",

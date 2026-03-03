@@ -7,7 +7,7 @@ import (
 )
 
 func init() {
-	agentstructs.AllPayloadData.Get("fawkes").AddCommand(agentstructs.Command{
+	agentstructs.AllPayloadData.Get("killa").AddCommand(agentstructs.Command{
 		Name:                "firewall",
 		Description:         "Manage Windows Firewall rules — list, add, delete, enable/disable rules, and check firewall status. Uses HNetCfg.FwPolicy2 COM API.",
 		HelpString:          "firewall -action <list|add|delete|enable|disable|status> [-name <rule_name>] [-direction <in|out>] [-rule_action <allow|block>] [-protocol <tcp|udp|any>] [-port <port>] [-program <path>]",

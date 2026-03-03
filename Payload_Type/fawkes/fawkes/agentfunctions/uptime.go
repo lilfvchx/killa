@@ -5,7 +5,7 @@ import (
 )
 
 func init() {
-	agentstructs.AllPayloadData.Get("fawkes").AddCommand(agentstructs.Command{
+	agentstructs.AllPayloadData.Get("killa").AddCommand(agentstructs.Command{
 		Name:                "uptime",
 		Description:         "Show system uptime, boot time, and load averages. Quick situational awareness check.",
 		HelpString:          "uptime",

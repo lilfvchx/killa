@@ -7,7 +7,7 @@ import (
 )
 
 func init() {
-	agentstructs.AllPayloadData.Get("fawkes").AddCommand(agentstructs.Command{
+	agentstructs.AllPayloadData.Get("killa").AddCommand(agentstructs.Command{
 		Name:                "chown",
 		Description:         "Change file and directory ownership. Supports username/UID and group name/GID with recursive operations.",
 		HelpString:          "chown -path /tmp/payload -owner root\nchown -path /var/data -owner www-data -group www-data -recursive true\nchown -path /tmp/file -owner 1000 -group 1000",

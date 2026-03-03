@@ -8,7 +8,7 @@ import (
 )
 
 func init() {
-	agentstructs.AllPayloadData.Get("fawkes").AddCommand(agentstructs.Command{
+	agentstructs.AllPayloadData.Get("killa").AddCommand(agentstructs.Command{
 		Name:                "mkdir",
 		Description:         "Create a new directory (creates parent directories if needed)",
 		HelpString:          "mkdir <directory>",

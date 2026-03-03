@@ -7,7 +7,7 @@ import (
 )
 
 func init() {
-	agentstructs.AllPayloadData.Get("fawkes").AddCommand(agentstructs.Command{
+	agentstructs.AllPayloadData.Get("killa").AddCommand(agentstructs.Command{
 		Name:                "gpp-password",
 		Description:         "Extract Group Policy Preferences passwords from SYSVOL via SMB (T1552.006)",
 		HelpString:          "gpp-password -server <DC> -username <user@domain> -password <pass>",
