@@ -65,7 +65,7 @@ var payloadDefinition = agentstructs.PayloadType{
 	Wrapper:                                false,
 	CanBeWrappedByTheFollowingPayloadTypes: []string{},
 	SupportsDynamicLoading:                 false,
-	Description:                            "killa agent",
+	Description:                            "fawkes agent",
 	SupportedC2Profiles:                    []string{"http", "tcp", "slack", "dropbox"},
 	MythicEncryptsData:                     true,
 	MessageFormat:                          agentstructs.MessageFormatJSON,
