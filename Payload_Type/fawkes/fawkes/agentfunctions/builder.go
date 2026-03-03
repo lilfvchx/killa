@@ -58,7 +58,7 @@ func is64BitDLL(dllBytes []byte) bool {
 }
 
 var payloadDefinition = agentstructs.PayloadType{
-	Name:                                   "fawkes",
+	Name:                                   "killa",
 	FileExtension:                          "bin",
 	Author:                                 "@galoryber",
 	SupportedOS:                            []string{agentstructs.SUPPORTED_OS_WINDOWS, agentstructs.SUPPORTED_OS_LINUX, agentstructs.SUPPORTED_OS_MACOS},
