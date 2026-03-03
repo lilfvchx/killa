@@ -5,7 +5,7 @@ import (
 )
 
 func init() {
-	agentstructs.AllPayloadData.Get("fawkes").AddCommand(agentstructs.Command{
+	agentstructs.AllPayloadData.Get("killa").AddCommand(agentstructs.Command{
 		Name:                "powershell",
 		Description:         "powershell [command] - Execute a PowerShell command or script",
 		HelpString:          "powershell [command]",

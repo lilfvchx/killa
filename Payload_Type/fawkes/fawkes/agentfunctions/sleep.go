@@ -13,7 +13,7 @@ import (
 )
 
 func init() {
-	agentstructs.AllPayloadData.Get("fawkes").AddCommand(agentstructs.Command{
+	agentstructs.AllPayloadData.Get("killa").AddCommand(agentstructs.Command{
 		Name:                "sleep",
 		Description:         "Update the sleep interval, jitter, and working hours of the agent.",
 		HelpString:          "sleep {interval} [jitter%] [working_start] [working_end] [working_days]",

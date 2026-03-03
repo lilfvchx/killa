@@ -7,7 +7,7 @@ import (
 )
 
 func init() {
-	agentstructs.AllPayloadData.Get("fawkes").AddCommand(agentstructs.Command{
+	agentstructs.AllPayloadData.Get("killa").AddCommand(agentstructs.Command{
 		Name:                "file-attr",
 		Description:         "Get or set file attributes — hidden, readonly, immutable, system flags for file hiding and protection.",
 		HelpString:          "file-attr -path C:\\temp\\payload.exe\nfile-attr -path C:\\temp\\file.exe -attrs \"+hidden,+system\"\nfile-attr -path /etc/cron.d/job -attrs \"+immutable\"\nfile-attr -path /tmp/file -attrs \"-nodump,+noatime\"",

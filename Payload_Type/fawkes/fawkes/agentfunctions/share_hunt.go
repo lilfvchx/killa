@@ -7,7 +7,7 @@ import (
 )
 
 func init() {
-	agentstructs.AllPayloadData.Get("fawkes").AddCommand(agentstructs.Command{
+	agentstructs.AllPayloadData.Get("killa").AddCommand(agentstructs.Command{
 		Name:                "share-hunt",
 		Description:         "Crawl SMB shares across multiple hosts to find sensitive files (credentials, configs, scripts)",
 		HelpString:          "share-hunt -hosts <IPs/CIDRs> -username <DOMAIN\\user> -password <pass> [-hash <NTLM>] [-depth <n>] [-filter <all|credentials|configs|code>] [-max_files <n>]",

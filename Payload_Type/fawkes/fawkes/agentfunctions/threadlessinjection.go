@@ -10,7 +10,7 @@ import (
 )
 
 func init() {
-	agentstructs.AllPayloadData.Get("fawkes").AddCommand(agentstructs.Command{
+	agentstructs.AllPayloadData.Get("killa").AddCommand(agentstructs.Command{
 		Name:                "threadless-inject",
 		Description:         "Inject shellcode into a remote process using threadless injection (function hooking)",
 		HelpString:          "threadless-inject",

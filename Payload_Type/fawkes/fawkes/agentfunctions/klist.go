@@ -9,7 +9,7 @@ import (
 )
 
 func init() {
-	agentstructs.AllPayloadData.Get("fawkes").AddCommand(agentstructs.Command{
+	agentstructs.AllPayloadData.Get("killa").AddCommand(agentstructs.Command{
 		Name: "klist",
 		AssociatedBrowserScript: &agentstructs.BrowserScript{
 			ScriptPath: filepath.Join(".", "fawkes", "browserscripts", "klist_new.js"),

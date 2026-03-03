@@ -7,7 +7,7 @@ import (
 )
 
 func init() {
-	agentstructs.AllPayloadData.Get("fawkes").AddCommand(agentstructs.Command{
+	agentstructs.AllPayloadData.Get("killa").AddCommand(agentstructs.Command{
 		Name:                "cred-check",
 		Description:         "Test credentials against SMB, WinRM, and LDAP on target hosts",
 		HelpString:          "cred-check -hosts <IPs/CIDRs> -username <DOMAIN\\user> -password <pass> [-hash <NTLM>] [-timeout <seconds>]",

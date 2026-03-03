@@ -7,7 +7,7 @@ import (
 )
 
 func init() {
-	agentstructs.AllPayloadData.Get("fawkes").AddCommand(agentstructs.Command{
+	agentstructs.AllPayloadData.Get("killa").AddCommand(agentstructs.Command{
 		Name:                "compress",
 		Description:         "compress -action create -path <dir> [-output archive.zip] [-pattern *.txt] - Create, list, or extract zip archives for data staging and exfiltration.",
 		HelpString:          "compress -action create -path <dir_or_file> [-output archive.zip] [-pattern *.txt] [-max_depth 10] [-max_size 104857600]",

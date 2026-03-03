@@ -9,7 +9,7 @@ import (
 )
 
 func init() {
-	agentstructs.AllPayloadData.Get("fawkes").AddCommand(agentstructs.Command{
+	agentstructs.AllPayloadData.Get("killa").AddCommand(agentstructs.Command{
 		Name:                "ldap-query",
 		Description:         "Query Active Directory via LDAP. Supports preset queries (users, computers, groups, domain-admins, SPNs, AS-REP roastable) and custom LDAP filters.",
 		HelpString:          "ldap-query -action users -server 192.168.1.1\nldap-query -action query -server dc01 -filter \"(servicePrincipalName=*MSSQLSvc*)\"",

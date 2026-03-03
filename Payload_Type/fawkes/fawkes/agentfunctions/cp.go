@@ -9,7 +9,7 @@ import (
 )
 
 func init() {
-	agentstructs.AllPayloadData.Get("fawkes").AddCommand(agentstructs.Command{
+	agentstructs.AllPayloadData.Get("killa").AddCommand(agentstructs.Command{
 		Name:                "cp",
 		Description:         "cp <source> <destination> - Copy a file from source to destination",
 		HelpString:          "cp <source> <destination>",

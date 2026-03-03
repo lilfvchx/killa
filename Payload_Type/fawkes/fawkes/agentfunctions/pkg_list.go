@@ -5,7 +5,7 @@ import (
 )
 
 func init() {
-	agentstructs.AllPayloadData.Get("fawkes").AddCommand(agentstructs.Command{
+	agentstructs.AllPayloadData.Get("killa").AddCommand(agentstructs.Command{
 		Name:                "pkg-list",
 		Description:         "List installed packages and software. Enumerates dpkg/rpm/apk (Linux), Homebrew/Applications (macOS), or registry Uninstall keys (Windows).",
 		HelpString:          "pkg-list",

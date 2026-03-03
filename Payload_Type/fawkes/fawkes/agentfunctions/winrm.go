@@ -7,7 +7,7 @@ import (
 )
 
 func init() {
-	agentstructs.AllPayloadData.Get("fawkes").AddCommand(agentstructs.Command{
+	agentstructs.AllPayloadData.Get("killa").AddCommand(agentstructs.Command{
 		Name:                "winrm",
 		Description:         "Execute commands on remote Windows hosts via WinRM with NTLM authentication. Supports cmd.exe and PowerShell shells. Supports pass-the-hash.",
 		HelpString:          "winrm -host 192.168.1.1 -username admin -password pass -command \"whoami\"\nwinrm -host 192.168.1.1 -username DOMAIN\\admin -password pass -command \"Get-Process\" -shell powershell\nwinrm -host 192.168.1.1 -username admin -hash aad3b435b51404ee:8846f7eaee8fb117 -command \"whoami\" -domain DOMAIN\nwinrm -host 192.168.1.1 -username admin -password pass -command \"ipconfig /all\" -port 5986 -use_tls true",

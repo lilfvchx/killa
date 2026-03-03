@@ -7,7 +7,7 @@ import (
 )
 
 func init() {
-	agentstructs.AllPayloadData.Get("fawkes").AddCommand(agentstructs.Command{
+	agentstructs.AllPayloadData.Get("killa").AddCommand(agentstructs.Command{
 		Name:                "tac",
 		Description:         "Print file lines in reverse order. Like Unix tac — useful for viewing logs from newest to oldest.",
 		HelpString:          "tac -path /var/log/auth.log",

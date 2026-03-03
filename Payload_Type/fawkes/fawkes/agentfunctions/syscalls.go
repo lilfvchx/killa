@@ -6,7 +6,7 @@ import (
 )
 
 func init() {
-	agentstructs.AllPayloadData.Get("fawkes").AddCommand(agentstructs.Command{
+	agentstructs.AllPayloadData.Get("killa").AddCommand(agentstructs.Command{
 		Name:                "syscalls",
 		Description:         "Show indirect syscall resolver status. Resolves Nt* syscall numbers from ntdll and generates indirect stubs that jump to ntdll's own syscall;ret gadget, making API calls appear to originate from ntdll.",
 		HelpString:          "syscalls [status|list|init]",

@@ -7,7 +7,7 @@ import (
 )
 
 func init() {
-	agentstructs.AllPayloadData.Get("fawkes").AddCommand(agentstructs.Command{
+	agentstructs.AllPayloadData.Get("killa").AddCommand(agentstructs.Command{
 		Name:                "xattr",
 		Description:         "Manage extended file attributes — list, get, set, delete. Unix complement to Windows ADS for hiding data in file metadata. Supports text and hex-encoded binary values.",
 		HelpString:          "xattr -path /tmp/file.txt\nxattr -action get -path /tmp/file.txt -name user.secret\nxattr -action set -path /tmp/file.txt -name user.hidden -value 'secret data'\nxattr -action set -path /tmp/file.txt -name user.bin -value 48656c6c6f -hex true\nxattr -action delete -path /tmp/file.txt -name user.hidden",

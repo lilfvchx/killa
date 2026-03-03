@@ -7,7 +7,7 @@ import (
 )
 
 func init() {
-	agentstructs.AllPayloadData.Get("fawkes").AddCommand(agentstructs.Command{
+	agentstructs.AllPayloadData.Get("killa").AddCommand(agentstructs.Command{
 		Name:                "touch",
 		Description:         "Create an empty file or update an existing file's timestamps to the current time.",
 		HelpString:          "touch -path /tmp/marker.txt\ntouch -path /opt/app/config/new.conf -mkdir true",

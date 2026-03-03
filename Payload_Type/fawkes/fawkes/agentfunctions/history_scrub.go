@@ -7,7 +7,7 @@ import (
 )
 
 func init() {
-	agentstructs.AllPayloadData.Get("fawkes").AddCommand(agentstructs.Command{
+	agentstructs.AllPayloadData.Get("killa").AddCommand(agentstructs.Command{
 		Name:                "history-scrub",
 		Description:         "List or clear shell and application command history files",
 		HelpString:          "history-scrub [-action list|clear|clear-all] [-user <username>]",

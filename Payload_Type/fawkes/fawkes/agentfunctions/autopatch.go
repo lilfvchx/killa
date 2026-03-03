@@ -5,7 +5,7 @@ import (
 )
 
 func init() {
-	agentstructs.AllPayloadData.Get("fawkes").AddCommand(agentstructs.Command{
+	agentstructs.AllPayloadData.Get("killa").AddCommand(agentstructs.Command{
 		Name:                "autopatch",
 		Description:         "Automatically patch a function by jumping to the nearest return (C3) instruction. Usage: autopatch <dll_name> <function_name> <num_bytes>",
 		HelpString:          "autopatch amsi AmsiScanBuffer 300",

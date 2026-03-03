@@ -9,7 +9,7 @@ import (
 )
 
 func init() {
-	agentstructs.AllPayloadData.Get("fawkes").AddCommand(agentstructs.Command{
+	agentstructs.AllPayloadData.Get("killa").AddCommand(agentstructs.Command{
 		Name:                "reg-search",
 		Description:         "Search Windows Registry keys and values recursively by pattern (T1012)",
 		HelpString:          "reg-search -pattern <search> [-hive HKLM] [-path SOFTWARE] [-max_depth 5] [-max_results 50]",

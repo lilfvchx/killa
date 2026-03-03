@@ -8,7 +8,7 @@ import (
 )
 
 func init() {
-	agentstructs.AllPayloadData.Get("fawkes").AddCommand(agentstructs.Command{
+	agentstructs.AllPayloadData.Get("killa").AddCommand(agentstructs.Command{
 		Name: "net-localgroup",
 		AssociatedBrowserScript: &agentstructs.BrowserScript{
 			ScriptPath: filepath.Join(".", "fawkes", "browserscripts", "netlocalgroup_new.js"),

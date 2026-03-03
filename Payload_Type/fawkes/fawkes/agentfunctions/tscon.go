@@ -7,7 +7,7 @@ import (
 )
 
 func init() {
-	agentstructs.AllPayloadData.Get("fawkes").AddCommand(agentstructs.Command{
+	agentstructs.AllPayloadData.Get("killa").AddCommand(agentstructs.Command{
 		Name:                "tscon",
 		Description:         "RDP session management — list sessions, hijack disconnected sessions, disconnect users",
 		HelpString:          "tscon [-action <list|hijack|disconnect>] [-session_id <id>]",

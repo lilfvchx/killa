@@ -7,7 +7,7 @@ import (
 )
 
 func init() {
-	agentstructs.AllPayloadData.Get("fawkes").AddCommand(agentstructs.Command{
+	agentstructs.AllPayloadData.Get("killa").AddCommand(agentstructs.Command{
 		Name:                "vss",
 		Description:         "Manage Volume Shadow Copies — list, create, delete, and extract files from shadow copies. Useful for extracting locked files like NTDS.dit or SAM.",
 		HelpString:          "vss -action <list|create|delete|extract> [-volume C:\\] [-id <shadow_id_or_device_path>] [-source <path>] [-dest <path>]",

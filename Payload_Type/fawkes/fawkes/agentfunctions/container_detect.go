@@ -5,7 +5,7 @@ import (
 )
 
 func init() {
-	agentstructs.AllPayloadData.Get("fawkes").AddCommand(agentstructs.Command{
+	agentstructs.AllPayloadData.Get("killa").AddCommand(agentstructs.Command{
 		Name:                "container-detect",
 		Description:         "Detect container runtime and environment type (Docker, K8s, LXC, Podman, WSL). Checks for escape vectors like mounted Docker sockets and K8s service accounts.",
 		HelpString:          "container-detect",

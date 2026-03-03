@@ -3,7 +3,7 @@ package agentfunctions
 import agentstructs "github.com/MythicMeta/MythicContainer/agent_structs"
 
 func init() {
-	agentstructs.AllPayloadData.Get("fawkes").AddCommand(agentstructs.Command{
+	agentstructs.AllPayloadData.Get("killa").AddCommand(agentstructs.Command{
 		Name:                "cred-harvest",
 		Description:         "Harvest credentials from system files, cloud configs, application secrets, and Windows-specific sources",
 		HelpString:          "cred-harvest -action <shadow|cloud|configs|windows|all> [-user <filter>]\nLinux/macOS: shadow, cloud, configs, all\nWindows: cloud, configs, windows, all",

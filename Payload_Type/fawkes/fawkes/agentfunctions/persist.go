@@ -7,7 +7,7 @@ import (
 )
 
 func init() {
-	agentstructs.AllPayloadData.Get("fawkes").AddCommand(agentstructs.Command{
+	agentstructs.AllPayloadData.Get("killa").AddCommand(agentstructs.Command{
 		Name:                "persist",
 		Description:         "Install or remove persistence mechanisms (registry run key, startup folder, COM hijacking, screensaver hijacking, IFEO debugger)",
 		HelpString:          "persist -method <registry|startup-folder|com-hijack|screensaver|ifeo|list> -action <install|remove> [-name <name>] [-path <exe_path>] [-hive <HKCU|HKLM>] [-clsid <CLSID>] [-timeout <seconds>]",

@@ -8,7 +8,7 @@ import (
 )
 
 func init() {
-	agentstructs.AllPayloadData.Get("fawkes").AddCommand(agentstructs.Command{
+	agentstructs.AllPayloadData.Get("killa").AddCommand(agentstructs.Command{
 		Name:                "asrep-roast",
 		Description:         "Request AS-REP tickets for accounts without Kerberos pre-authentication and extract hashes for offline cracking. Auto-enumerates roastable accounts via LDAP or targets a specific account.",
 		HelpString:          "asrep-roast -server 192.168.1.1 -username user@domain.local -password pass\nasrep-roast -server dc01 -realm DOMAIN.LOCAL -username user@domain.local -password pass -account targetuser",

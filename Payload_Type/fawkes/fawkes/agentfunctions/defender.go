@@ -8,7 +8,7 @@ import (
 )
 
 func init() {
-	agentstructs.AllPayloadData.Get("fawkes").AddCommand(agentstructs.Command{
+	agentstructs.AllPayloadData.Get("killa").AddCommand(agentstructs.Command{
 		Name:                "defender",
 		Description:         "Query Windows Defender status, manage exclusions, and view threat detections. Uses WMI (MSFT_MpComputerStatus) and registry APIs.",
 		HelpString:          "defender -action <status|exclusions|add-exclusion|remove-exclusion|threats> [-type <path|process|extension>] [-value <exclusion_value>]",

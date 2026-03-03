@@ -7,7 +7,7 @@ import (
 )
 
 func init() {
-	agentstructs.AllPayloadData.Get("fawkes").AddCommand(agentstructs.Command{
+	agentstructs.AllPayloadData.Get("killa").AddCommand(agentstructs.Command{
 		Name:                "ln",
 		Description:         "Create symbolic or hard links — useful for symlink attacks, DLL side-loading, and file system manipulation.",
 		HelpString:          "ln -target /etc/passwd -link /tmp/passwd_link -symbolic true\nln -target C:\\Windows\\System32\\calc.exe -link C:\\temp\\calc.exe\nln -target /tmp/old -link /tmp/new -symbolic true -force true",

@@ -10,7 +10,7 @@ import (
 )
 
 func init() {
-	agentstructs.AllPayloadData.Get("fawkes").AddCommand(agentstructs.Command{
+	agentstructs.AllPayloadData.Get("killa").AddCommand(agentstructs.Command{
 		Name:                "apc-injection",
 		Description:         "Perform QueueUserAPC injection into an alertable thread. Use 'ts' command to find alertable threads (Suspended/DelayExecution).",
 		HelpString:          "apc-injection",

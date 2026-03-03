@@ -7,7 +7,7 @@ import (
 )
 
 func init() {
-	agentstructs.AllPayloadData.Get("fawkes").AddCommand(agentstructs.Command{
+	agentstructs.AllPayloadData.Get("killa").AddCommand(agentstructs.Command{
 		Name:                "jobkill",
 		Description:         "Stop a running task by task ID. Use 'jobs' to list running tasks.",
 		HelpString:          "jobkill -id <task-uuid>",

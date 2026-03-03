@@ -9,7 +9,7 @@ import (
 )
 
 func init() {
-	agentstructs.AllPayloadData.Get("fawkes").AddCommand(agentstructs.Command{
+	agentstructs.AllPayloadData.Get("killa").AddCommand(agentstructs.Command{
 		Name:                "mv",
 		Description:         "mv <source> <destination> - Move a file from source to destination",
 		HelpString:          "mv <source> <destination>",

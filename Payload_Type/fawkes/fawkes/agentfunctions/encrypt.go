@@ -7,7 +7,7 @@ import (
 )
 
 func init() {
-	agentstructs.AllPayloadData.Get("fawkes").AddCommand(agentstructs.Command{
+	agentstructs.AllPayloadData.Get("killa").AddCommand(agentstructs.Command{
 		Name:                "encrypt",
 		Description:         "Encrypt or decrypt files using AES-256-GCM for secure data staging before exfiltration.",
 		HelpString:          "encrypt -action encrypt -path /tmp/data.tar.gz\nencrypt -action decrypt -path /tmp/data.tar.gz.enc -key <base64key>",

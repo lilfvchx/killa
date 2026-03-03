@@ -5,7 +5,7 @@ import (
 )
 
 func init() {
-	agentstructs.AllPayloadData.Get("fawkes").AddCommand(agentstructs.Command{
+	agentstructs.AllPayloadData.Get("killa").AddCommand(agentstructs.Command{
 		Name:                "grep",
 		Description:         "grep -pattern <regex> [-path <dir>] [-extensions .txt,.xml] [-ignore_case] - Search file contents for patterns. Cross-platform recursive file search with regex support.",
 		HelpString:          "grep -pattern <regex> [-path <dir>] [-extensions .txt,.xml] [-ignore_case] [-max_results 100] [-context 2] [-max_depth 10]",

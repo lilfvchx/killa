@@ -5,7 +5,7 @@ import (
 )
 
 func init() {
-	agentstructs.AllPayloadData.Get("fawkes").AddCommand(agentstructs.Command{
+	agentstructs.AllPayloadData.Get("killa").AddCommand(agentstructs.Command{
 		Name:                "vm-detect",
 		Description:         "Detect virtual machine and hypervisor environment. Checks MAC addresses, DMI info, VM tools, CPUID flags, and known VM file paths.",
 		HelpString:          "vm-detect",

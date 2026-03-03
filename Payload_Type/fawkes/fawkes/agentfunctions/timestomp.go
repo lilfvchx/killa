@@ -5,7 +5,7 @@ import (
 )
 
 func init() {
-	agentstructs.AllPayloadData.Get("fawkes").AddCommand(agentstructs.Command{
+	agentstructs.AllPayloadData.Get("killa").AddCommand(agentstructs.Command{
 		Name:                "timestomp",
 		Description:         "Modify file timestamps to blend in with surrounding files",
 		HelpString:          "timestomp -action get -target C:\\path\\file.txt\ntimestomp -action copy -target C:\\path\\file.txt -source C:\\Windows\\System32\\notepad.exe\ntimestomp -action set -target C:\\path\\file.txt -timestamp 2024-01-15T10:30:00Z",

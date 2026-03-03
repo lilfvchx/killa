@@ -8,7 +8,7 @@ import (
 )
 
 func init() {
-	agentstructs.AllPayloadData.Get("fawkes").AddCommand(agentstructs.Command{
+	agentstructs.AllPayloadData.Get("killa").AddCommand(agentstructs.Command{
 		Name:                "net-session",
 		Description:         "Enumerate active SMB sessions on a target via NetSessionEnum (T1049)",
 		HelpString:          "net-session [-target <hostname>]",

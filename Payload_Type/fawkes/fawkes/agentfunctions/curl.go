@@ -7,7 +7,7 @@ import (
 )
 
 func init() {
-	agentstructs.AllPayloadData.Get("fawkes").AddCommand(agentstructs.Command{
+	agentstructs.AllPayloadData.Get("killa").AddCommand(agentstructs.Command{
 		Name:                "curl",
 		Description:         "Make HTTP/HTTPS requests from the agent's network perspective. Useful for cloud metadata, internal services, and SSRF.",
 		HelpString:          "curl -url http://169.254.169.254/latest/meta-data/\ncurl -url https://internal-api.corp.local/health -method POST -body '{\"check\":true}' -headers '{\"Authorization\":\"Bearer token\"}'",

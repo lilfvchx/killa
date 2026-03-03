@@ -7,7 +7,7 @@ import (
 )
 
 func init() {
-	agentstructs.AllPayloadData.Get("fawkes").AddCommand(agentstructs.Command{
+	agentstructs.AllPayloadData.Get("killa").AddCommand(agentstructs.Command{
 		Name:                "lsa-secrets",
 		Description:         "Extract LSA secrets (service passwords, DPAPI keys, machine account) and cached domain credentials (DCC2) from the SECURITY hive. Requires SYSTEM privileges.",
 		HelpString:          "lsa-secrets -action <dump|cached>",

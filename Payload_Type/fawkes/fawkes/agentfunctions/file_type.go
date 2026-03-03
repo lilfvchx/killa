@@ -7,7 +7,7 @@ import (
 )
 
 func init() {
-	agentstructs.AllPayloadData.Get("fawkes").AddCommand(agentstructs.Command{
+	agentstructs.AllPayloadData.Get("killa").AddCommand(agentstructs.Command{
 		Name:                "file-type",
 		Description:         "Identify file types by magic bytes (header signatures). Detect executables, archives, documents, images, databases, and encrypted volumes.",
 		HelpString:          "file-type -path /tmp/unknown_file\nfile-type -path /home/user/Downloads -recursive true",

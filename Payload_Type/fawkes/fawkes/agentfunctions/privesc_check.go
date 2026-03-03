@@ -5,7 +5,7 @@ import (
 )
 
 func init() {
-	agentstructs.AllPayloadData.Get("fawkes").AddCommand(agentstructs.Command{
+	agentstructs.AllPayloadData.Get("killa").AddCommand(agentstructs.Command{
 		Name:                "privesc-check",
 		Description:         "Privilege escalation enumeration. Windows: token privileges, unquoted services, AlwaysInstallElevated, auto-logon, UAC. Linux: SUID/SGID, capabilities, sudo, containers. macOS: LaunchDaemons, TCC, dylib hijacking, SIP (T1548)",
 		HelpString:          "privesc-check -action <all|...> (Windows: privileges, services, registry, uac, unattend. Linux: suid, capabilities, sudo, container. macOS: launchdaemons, tcc, dylib, sip. Shared: all, writable)",

@@ -8,7 +8,7 @@ import (
 )
 
 func init() {
-	agentstructs.AllPayloadData.Get("fawkes").AddCommand(agentstructs.Command{
+	agentstructs.AllPayloadData.Get("killa").AddCommand(agentstructs.Command{
 		Name:                "link",
 		Description:         "Link to a TCP P2P agent to establish a peer-to-peer connection for internal pivoting. The target agent must be built with a TCP profile and listening on the specified port.",
 		HelpString:          "link -host <ip> -port <port>",

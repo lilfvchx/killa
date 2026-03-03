@@ -10,7 +10,7 @@ import (
 )
 
 func init() {
-	agentstructs.AllPayloadData.Get("fawkes").AddCommand(agentstructs.Command{
+	agentstructs.AllPayloadData.Get("killa").AddCommand(agentstructs.Command{
 		Name:                "ptrace-inject",
 		Description:         "Linux process injection via ptrace syscall — attach to a target process, write shellcode, and execute it",
 		HelpString:          "ptrace-inject -action check | ptrace-inject -pid <PID> -filename <shellcode>",

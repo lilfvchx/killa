@@ -7,7 +7,7 @@ import (
 )
 
 func init() {
-	agentstructs.AllPayloadData.Get("fawkes").AddCommand(agentstructs.Command{
+	agentstructs.AllPayloadData.Get("killa").AddCommand(agentstructs.Command{
 		Name:                "cloud-metadata",
 		Description:         "Probe cloud instance metadata services (AWS/Azure/GCP/DigitalOcean) for credentials, identity, and configuration. Supports IMDSv2 for AWS.",
 		HelpString:          "cloud-metadata -action detect\ncloud-metadata -action creds\ncloud-metadata -action all -provider aws",

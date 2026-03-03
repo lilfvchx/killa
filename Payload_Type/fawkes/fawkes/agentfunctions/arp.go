@@ -7,7 +7,7 @@ import (
 )
 
 func init() {
-	agentstructs.AllPayloadData.Get("fawkes").AddCommand(agentstructs.Command{
+	agentstructs.AllPayloadData.Get("killa").AddCommand(agentstructs.Command{
 		Name:                "arp",
 		Description:         "Display ARP table — shows IP-to-MAC address mappings for nearby hosts",
 		HelpString:          "arp",

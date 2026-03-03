@@ -7,7 +7,7 @@ import (
 )
 
 func init() {
-	agentstructs.AllPayloadData.Get("fawkes").AddCommand(agentstructs.Command{
+	agentstructs.AllPayloadData.Get("killa").AddCommand(agentstructs.Command{
 		Name:                "uac-bypass",
 		Description:         "Bypass User Account Control (UAC) to escalate from medium to high integrity. Registry-based hijack techniques that trigger auto-elevating Windows binaries.",
 		HelpString:          "uac-bypass [-technique fodhelper] [-command C:\\path\\to\\payload.exe]",

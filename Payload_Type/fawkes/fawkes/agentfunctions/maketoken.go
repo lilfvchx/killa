@@ -11,7 +11,7 @@ import (
 )
 
 func init() {
-	agentstructs.AllPayloadData.Get("fawkes").AddCommand(agentstructs.Command{
+	agentstructs.AllPayloadData.Get("killa").AddCommand(agentstructs.Command{
 		Name:                "make-token",
 		Description:         "Create a token from credentials (domain\\username password) and impersonate it",
 		HelpString:          "make-token -username <username> -domain <domain> -password <password>",

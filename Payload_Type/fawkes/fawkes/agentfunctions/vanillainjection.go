@@ -10,7 +10,7 @@ import (
 )
 
 func init() {
-	agentstructs.AllPayloadData.Get("fawkes").AddCommand(agentstructs.Command{
+	agentstructs.AllPayloadData.Get("killa").AddCommand(agentstructs.Command{
 		Name:                "vanilla-injection",
 		Description:         "Perform vanilla remote process injection using VirtualAllocEx, WriteProcessMemory, and CreateRemoteThread",
 		HelpString:          "vanilla-injection",

@@ -7,7 +7,7 @@ import (
 )
 
 func init() {
-	agentstructs.AllPayloadData.Get("fawkes").AddCommand(agentstructs.Command{
+	agentstructs.AllPayloadData.Get("killa").AddCommand(agentstructs.Command{
 		Name:                "watch-dir",
 		Description:         "Monitor a directory for file system changes — detects new, modified, and deleted files via polling (T1083, T1119)",
 		HelpString:          "watch-dir -path /Users/target/Desktop -interval 5 -duration 300 [-depth 3] [-pattern *.docx] [-hash true]",

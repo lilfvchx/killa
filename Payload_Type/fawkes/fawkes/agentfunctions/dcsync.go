@@ -8,7 +8,7 @@ import (
 )
 
 func init() {
-	agentstructs.AllPayloadData.Get("fawkes").AddCommand(agentstructs.Command{
+	agentstructs.AllPayloadData.Get("killa").AddCommand(agentstructs.Command{
 		Name:                "dcsync",
 		Description:         "DCSync — replicate AD account credentials via DRS (Directory Replication Services). Extracts NTLM hashes and Kerberos keys from a Domain Controller without touching LSASS. Requires Replicating Directory Changes rights. Supports pass-the-hash.",
 		HelpString:          "dcsync -server 192.168.1.1 -username admin@domain.local -password pass -target Administrator\ndcsync -server dc01 -username DOMAIN\\admin -hash aad3b435b51404ee:8846f7eaee8fb117 -target \"Administrator,krbtgt\"\ndcsync -server dc01 -username admin -password pass -domain CORP.LOCAL -target krbtgt",

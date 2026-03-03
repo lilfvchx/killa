@@ -10,7 +10,7 @@ import (
 )
 
 func init() {
-	agentstructs.AllPayloadData.Get("fawkes").AddCommand(agentstructs.Command{
+	agentstructs.AllPayloadData.Get("killa").AddCommand(agentstructs.Command{
 		Name:                "execute-memory",
 		Description:         "Execute a native binary from memory. Linux: memfd_create (no disk write). macOS/Windows: temp file with immediate cleanup (minimal disk footprint).",
 		HelpString:          "execute-memory -arguments 'arg1 arg2' -timeout 60",

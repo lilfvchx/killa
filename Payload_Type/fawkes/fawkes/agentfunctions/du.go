@@ -7,7 +7,7 @@ import (
 )
 
 func init() {
-	agentstructs.AllPayloadData.Get("fawkes").AddCommand(agentstructs.Command{
+	agentstructs.AllPayloadData.Get("killa").AddCommand(agentstructs.Command{
 		Name:                "du",
 		Description:         "Report disk usage for files and directories. Shows size breakdown by subdirectory.",
 		HelpString:          "du -path /var/log\ndu -path C:\\Users\\setup -max_depth 2\ndu -path /tmp/artifacts",

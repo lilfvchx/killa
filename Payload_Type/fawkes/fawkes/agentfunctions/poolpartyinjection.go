@@ -10,7 +10,7 @@ import (
 )
 
 func init() {
-	agentstructs.AllPayloadData.Get("fawkes").AddCommand(agentstructs.Command{
+	agentstructs.AllPayloadData.Get("killa").AddCommand(agentstructs.Command{
 		Name:                "poolparty-injection",
 		Description:         "Perform PoolParty process injection using Windows Thread Pool abuse techniques. Based on SafeBreach Labs research.",
 		HelpString:          "poolparty-injection",

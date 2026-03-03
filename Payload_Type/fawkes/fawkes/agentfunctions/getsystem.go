@@ -7,7 +7,7 @@ import (
 )
 
 func init() {
-	agentstructs.AllPayloadData.Get("fawkes").AddCommand(agentstructs.Command{
+	agentstructs.AllPayloadData.Get("killa").AddCommand(agentstructs.Command{
 		Name:                "getsystem",
 		Description:         "Elevate to SYSTEM by stealing a token from a SYSTEM process (requires admin/SeDebugPrivilege)",
 		HelpString:          "getsystem [-technique steal]",

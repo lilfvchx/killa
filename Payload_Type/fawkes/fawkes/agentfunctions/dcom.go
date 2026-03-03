@@ -7,7 +7,7 @@ import (
 )
 
 func init() {
-	agentstructs.AllPayloadData.Get("fawkes").AddCommand(agentstructs.Command{
+	agentstructs.AllPayloadData.Get("killa").AddCommand(agentstructs.Command{
 		Name:                "dcom",
 		Description:         "Execute commands on remote hosts via DCOM lateral movement. Supports MMC20.Application, ShellWindows, and ShellBrowserWindow objects.",
 		HelpString:          "dcom -action exec -host <target> -command <cmd> [-args <arguments>] [-object mmc20|shellwindows|shellbrowser] [-dir <directory>] [-username <user> -password <pass> -domain <domain>]",

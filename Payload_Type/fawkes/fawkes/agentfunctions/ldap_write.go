@@ -7,7 +7,7 @@ import (
 )
 
 func init() {
-	agentstructs.AllPayloadData.Get("fawkes").AddCommand(agentstructs.Command{
+	agentstructs.AllPayloadData.Get("killa").AddCommand(agentstructs.Command{
 		Name:                "ldap-write",
 		Description:         "Modify Active Directory objects via LDAP. Add/remove group members, set attributes, manage SPNs, enable/disable accounts, set passwords, create machine accounts, RBCD delegation, shadow credentials, delete objects.",
 		HelpString:          "ldap-write -action add-member -server dc01 -target jsmith -group \"Domain Admins\"\nldap-write -action shadow-cred -server dc01 -target victim -username user@domain -password pass\nldap-write -action set-rbcd -server dc01 -target victim -value FAKEPC01$",

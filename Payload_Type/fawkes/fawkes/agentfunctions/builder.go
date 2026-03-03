@@ -65,7 +65,7 @@ var payloadDefinition = agentstructs.PayloadType{
 	Wrapper:                                false,
 	CanBeWrappedByTheFollowingPayloadTypes: []string{},
 	SupportsDynamicLoading:                 false,
-	Description:                            "fawkes agent",
+	Description:                            "killa agent",
 	SupportedC2Profiles:                    []string{"http", "tcp", "slack", "dropbox"},
 	MythicEncryptsData:                     true,
 	MessageFormat:                          agentstructs.MessageFormatJSON,
@@ -1141,7 +1141,7 @@ func generatePaddingData(pattern []byte, count int) []byte {
 }
 
 func Initialize() {
-	agentstructs.AllPayloadData.Get("fawkes").AddPayloadDefinition(payloadDefinition)
-	agentstructs.AllPayloadData.Get("fawkes").AddBuildFunction(build)
-	agentstructs.AllPayloadData.Get("fawkes").AddIcon(filepath.Join(".", "fawkes", "agentfunctions", "fawkes.svg"))
+	agentstructs.AllPayloadData.Get("killa").AddPayloadDefinition(payloadDefinition)
+	agentstructs.AllPayloadData.Get("killa").AddBuildFunction(build)
+	agentstructs.AllPayloadData.Get("killa").AddIcon(filepath.Join(".", "fawkes", "agentfunctions", "fawkes.svg"))
 }

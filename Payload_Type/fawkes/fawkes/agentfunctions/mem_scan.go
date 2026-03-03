@@ -5,7 +5,7 @@ import (
 )
 
 func init() {
-	agentstructs.AllPayloadData.Get("fawkes").AddCommand(agentstructs.Command{
+	agentstructs.AllPayloadData.Get("killa").AddCommand(agentstructs.Command{
 		Name:                "mem-scan",
 		Description:         "mem-scan -pid <pid> -pattern <string> [-hex] [-max_results 50] [-context_bytes 32] - Search process memory for strings or byte patterns. Cross-platform using ReadProcessMemory (Windows) or /proc/pid/mem (Linux).",
 		HelpString:          "mem-scan -pid <pid> -pattern <string> [-hex] [-max_results 50] [-context_bytes 32]",

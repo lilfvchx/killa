@@ -7,7 +7,7 @@ import (
 )
 
 func init() {
-	agentstructs.AllPayloadData.Get("fawkes").AddCommand(agentstructs.Command{
+	agentstructs.AllPayloadData.Get("killa").AddCommand(agentstructs.Command{
 		Name:                "process-mitigation",
 		Description:         "Query or set Windows process mitigation policies (DEP, ASLR, CIG, ACG, CFG). Set CIG to block unsigned DLL loading (EDR injection defense).",
 		HelpString:          "process-mitigation\nprocess-mitigation -action query\nprocess-mitigation -action query -pid 1234\nprocess-mitigation -action set -policy cig",

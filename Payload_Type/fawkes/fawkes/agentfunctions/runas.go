@@ -7,7 +7,7 @@ import (
 )
 
 func init() {
-	agentstructs.AllPayloadData.Get("fawkes").AddCommand(agentstructs.Command{
+	agentstructs.AllPayloadData.Get("killa").AddCommand(agentstructs.Command{
 		Name:                "runas",
 		Description:         "Execute a command as a different user via CreateProcessWithLogonW",
 		HelpString:          "runas -command <cmd> -username <user> -password <pass> [-domain <domain>] [-netonly true]",

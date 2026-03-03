@@ -7,7 +7,7 @@ import (
 )
 
 func init() {
-	agentstructs.AllPayloadData.Get("fawkes").AddCommand(agentstructs.Command{
+	agentstructs.AllPayloadData.Get("killa").AddCommand(agentstructs.Command{
 		Name:                "stat",
 		Description:         "Display detailed file or directory metadata — type, size, permissions, ownership, timestamps, inode, attributes.",
 		HelpString:          "stat -path /etc/passwd\nstat -path C:\\Windows\\System32\\cmd.exe\nstat -path /usr/bin/sudo",

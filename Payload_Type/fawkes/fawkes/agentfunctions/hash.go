@@ -7,7 +7,7 @@ import (
 )
 
 func init() {
-	agentstructs.AllPayloadData.Get("fawkes").AddCommand(agentstructs.Command{
+	agentstructs.AllPayloadData.Get("killa").AddCommand(agentstructs.Command{
 		Name:                "hash",
 		Description:         "Compute file hashes (MD5, SHA-1, SHA-256, SHA-512). Single files or directories with pattern filtering.",
 		HelpString:          "hash -path /etc/passwd\nhash -path C:\\Windows\\System32 -algorithm md5 -pattern *.dll -recursive true\nhash -path /tmp -algorithm sha512 -max_files 100",

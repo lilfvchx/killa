@@ -10,7 +10,7 @@ import (
 )
 
 func init() {
-	agentstructs.AllPayloadData.Get("fawkes").AddCommand(agentstructs.Command{
+	agentstructs.AllPayloadData.Get("killa").AddCommand(agentstructs.Command{
 		Name:                "hollow",
 		Description:         "Process hollowing — create a suspended process and redirect its main thread to execute shellcode via SetThreadContext (T1055.012)",
 		HelpString:          "hollow",

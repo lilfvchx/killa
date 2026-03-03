@@ -9,7 +9,7 @@ import (
 )
 
 func init() {
-	agentstructs.AllPayloadData.Get("fawkes").AddCommand(agentstructs.Command{
+	agentstructs.AllPayloadData.Get("killa").AddCommand(agentstructs.Command{
 		Name:                "spawn",
 		Description:         "Spawn a suspended process or thread for use with injection techniques like apc-injection. Supports PPID spoofing and non-Microsoft DLL blocking.",
 		HelpString:          "spawn -path <executable> [-ppid <parent_pid>] [-blockdlls true]",

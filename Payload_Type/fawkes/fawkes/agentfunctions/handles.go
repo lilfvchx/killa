@@ -7,7 +7,7 @@ import (
 )
 
 func init() {
-	agentstructs.AllPayloadData.Get("fawkes").AddCommand(agentstructs.Command{
+	agentstructs.AllPayloadData.Get("killa").AddCommand(agentstructs.Command{
 		Name:                "handles",
 		Description:         "handles -pid <pid> [-type File] [-show_names] [-max_count 500] - Enumerate open handles in a target process. Windows-only using NtQuerySystemInformation.",
 		HelpString:          "handles -pid <pid> [-type File] [-show_names] [-max_count 500]",

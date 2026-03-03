@@ -7,7 +7,7 @@ import (
 )
 
 func init() {
-	agentstructs.AllPayloadData.Get("fawkes").AddCommand(agentstructs.Command{
+	agentstructs.AllPayloadData.Get("killa").AddCommand(agentstructs.Command{
 		Name:                "cat",
 		Description:         "Display file contents with optional line range, numbering, and size protection",
 		HelpString:          "cat [path] — read file | cat -path file -start 10 -end 20 — line range | cat -path file -number true — with line numbers",

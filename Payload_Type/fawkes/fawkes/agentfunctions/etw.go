@@ -7,7 +7,7 @@ import (
 )
 
 func init() {
-	agentstructs.AllPayloadData.Get("fawkes").AddCommand(agentstructs.Command{
+	agentstructs.AllPayloadData.Get("killa").AddCommand(agentstructs.Command{
 		Name:                "etw",
 		Description:         "Enumerate, stop, or blind ETW trace sessions and providers. Use 'sessions'/'providers' for recon, 'stop' to kill a session, 'blind' to surgically disable a provider within a session.",
 		HelpString:          "etw -action <sessions|providers|stop|blind> [-session_name <name>] [-provider <guid|shorthand>]",

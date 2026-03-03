@@ -9,7 +9,7 @@ import (
 )
 
 func init() {
-	agentstructs.AllPayloadData.Get("fawkes").AddCommand(agentstructs.Command{
+	agentstructs.AllPayloadData.Get("killa").AddCommand(agentstructs.Command{
 		Name:                "reg-write",
 		Description:         "Write a value to the Windows Registry. Creates keys and values if they don't exist. Supports REG_SZ, REG_EXPAND_SZ, REG_DWORD, REG_QWORD, and REG_BINARY types.",
 		HelpString:          "reg-write -hive HKCU -path \"Software\\TestKey\" -name \"TestValue\" -data \"hello\" -type REG_SZ",

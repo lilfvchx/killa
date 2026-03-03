@@ -43,7 +43,7 @@ func getFileList(msg agentstructs.PTRPCDynamicQueryFunctionMessage) []string {
 }
 
 func init() {
-	agentstructs.AllPayloadData.Get("fawkes").AddCommand(agentstructs.Command{
+	agentstructs.AllPayloadData.Get("killa").AddCommand(agentstructs.Command{
 		Name:                "inline-assembly",
 		Description:         "Execute a .NET assembly in memory using the CLR",
 		HelpString:          "inline-assembly",

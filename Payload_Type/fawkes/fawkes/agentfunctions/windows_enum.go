@@ -7,7 +7,7 @@ import (
 )
 
 func init() {
-	agentstructs.AllPayloadData.Get("fawkes").AddCommand(agentstructs.Command{
+	agentstructs.AllPayloadData.Get("killa").AddCommand(agentstructs.Command{
 		Name:                "windows",
 		Description:         "Enumerate visible application windows — shows what applications are running with window titles, PIDs, and process names",
 		HelpString:          "windows [-action list|search] [-filter string] [-all]",

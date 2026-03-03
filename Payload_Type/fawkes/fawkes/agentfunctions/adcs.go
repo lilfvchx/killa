@@ -8,7 +8,7 @@ import (
 )
 
 func init() {
-	agentstructs.AllPayloadData.Get("fawkes").AddCommand(agentstructs.Command{
+	agentstructs.AllPayloadData.Get("killa").AddCommand(agentstructs.Command{
 		Name:                "adcs",
 		Description:         "Enumerate AD Certificate Services (ADCS) and find vulnerable certificate templates (ESC1-ESC4). Queries PKI configuration via LDAP.",
 		HelpString:          "adcs -action find -server 192.168.1.1 -username user@domain.local -password pass\nadcs -action cas -server dc01\nadcs -action templates -server dc01",

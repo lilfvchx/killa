@@ -8,7 +8,7 @@ import (
 )
 
 func init() {
-	agentstructs.AllPayloadData.Get("fawkes").AddCommand(agentstructs.Command{
+	agentstructs.AllPayloadData.Get("killa").AddCommand(agentstructs.Command{
 		Name:                "ads",
 		Description:         "Manage NTFS Alternate Data Streams — write, read, list, or delete hidden streams (T1564.004)",
 		HelpString:          "ads -action <write|read|list|delete> -file <path> [-stream <name>] [-data <content>] [-hex true]",

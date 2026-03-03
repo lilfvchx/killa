@@ -475,3 +475,23 @@ After that, it's been exclusively feeding Claude PoC links and asking for cool s
 - **PoolParty Injection** - [SafeBreach Labs PoolParty research](https://github.com/SafeBreach-Labs/PoolParty) (original C++ PoC) - [Variant details](research/injection-techniques.md#poolparty-injection)
 - **Opus Injection** - Callback-based injection techniques - [Variant details](research/injection-techniques.md#opus-injection)
 - Phoenix icon from [OpenClipart](https://openclipart.org/detail/229408/colorful-phoenix-line-art-12)
+
+## C2 Profile Troubleshooting (Slack/Dropbox)
+
+If Mythic fails when installing or syncing the `slack` / `dropbox` C2 profiles with an error like:
+
+```
+failed to read dockerfile: open Dockerfile: no such file or directory
+```
+
+reinstall the container/profile so Mythic re-indexes the profile path and Docker build context:
+
+```bash
+# from Mythic install root
+./mythic-cli uninstall github https://github.com/galoryber/fawkes
+./mythic-cli install github https://github.com/galoryber/fawkes
+./mythic-cli c2 start slack
+./mythic-cli c2 start dropbox
+```
+
+This repository includes both supported C2 profile layouts (`C2_Profiles/<name>` and `C2_Profiles/<name>/<name>`) with Dockerfiles to avoid path-resolution issues across Mythic versions.

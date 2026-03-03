@@ -7,7 +7,7 @@ import (
 )
 
 func init() {
-	agentstructs.AllPayloadData.Get("fawkes").AddCommand(agentstructs.Command{
+	agentstructs.AllPayloadData.Get("killa").AddCommand(agentstructs.Command{
 		Name:                "psexec",
 		Description:         "Execute commands on remote hosts via SCM service creation — PSExec-style lateral movement (T1021.002, T1569.002)",
 		HelpString:          "psexec -host <target> -command <cmd> [-name <svcname>] [-display <displayname>] [-cleanup <true|false>]",

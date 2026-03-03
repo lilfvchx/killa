@@ -8,7 +8,7 @@ import (
 )
 
 func init() {
-	agentstructs.AllPayloadData.Get("fawkes").AddCommand(agentstructs.Command{
+	agentstructs.AllPayloadData.Get("killa").AddCommand(agentstructs.Command{
 		Name:                "gpo",
 		Description:         "Enumerate Group Policy Objects (GPOs) via LDAP — list all GPOs, map OU links, and identify interesting settings (scripts, scheduled tasks, security configs).",
 		HelpString:          "gpo -action all -server dc01 -username user@corp.local -password Pass123\ngpo -action links -server 192.168.1.1 -username admin@corp.local -password Admin1\ngpo -action find -server dc01 -username user@corp.local -password Pass1 -filter \"Default\"",

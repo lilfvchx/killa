@@ -8,7 +8,7 @@ import (
 )
 
 func init() {
-	agentstructs.AllPayloadData.Get("fawkes").AddCommand(agentstructs.Command{
+	agentstructs.AllPayloadData.Get("killa").AddCommand(agentstructs.Command{
 		Name:                "certstore",
 		Description:         "Enumerate Windows certificate stores to find code signing certs, client auth certs, and private keys. Searches CurrentUser and LocalMachine stores.",
 		HelpString:          "certstore -action <list|find> [-store <MY|ROOT|CA|Trust|TrustedPeople|all>] [-filter <substring>]",

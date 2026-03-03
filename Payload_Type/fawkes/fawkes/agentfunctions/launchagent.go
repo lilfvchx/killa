@@ -7,7 +7,7 @@ import (
 )
 
 func init() {
-	agentstructs.AllPayloadData.Get("fawkes").AddCommand(agentstructs.Command{
+	agentstructs.AllPayloadData.Get("killa").AddCommand(agentstructs.Command{
 		Name:                "launchagent",
 		Description:         "Install, remove, or list macOS LaunchAgent/LaunchDaemon persistence",
 		HelpString:          "launchagent -action <install|remove|list> -label <com.example.name> [-path <exe>] [-daemon true] [-interval <seconds>] [-run_at <HH:MM>]",

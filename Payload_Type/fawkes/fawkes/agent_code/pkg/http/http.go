@@ -239,7 +239,7 @@ func (h *HTTPProfile) GetTasking(agent *structs.Agent, outboundSocks []structs.S
 		Socks:       outboundSocks,
 		// Include agent identification for checkin updates
 		PayloadUUID: h.getActiveUUID(agent), // Use callback UUID if available
-		PayloadType: "fawkes",
+		PayloadType: "killa",
 		C2Profile:   "http",
 	}
 

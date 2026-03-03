@@ -7,7 +7,7 @@ import (
 )
 
 func init() {
-	agentstructs.AllPayloadData.Get("fawkes").AddCommand(agentstructs.Command{
+	agentstructs.AllPayloadData.Get("killa").AddCommand(agentstructs.Command{
 		Name:                "argue",
 		Description:         "Execute a command with spoofed process arguments. Creates process with fake command-line args (visible to Sysmon/EDR), then patches PEB to real args before resume. Defeats Event ID 1 command-line logging.",
 		HelpString:          "argue -command \"cmd.exe /c whoami\" -spoof \"cmd.exe /c echo hello\"",

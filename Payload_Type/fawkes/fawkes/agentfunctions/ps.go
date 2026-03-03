@@ -7,7 +7,7 @@ import (
 )
 
 func init() {
-	agentstructs.AllPayloadData.Get("fawkes").AddCommand(agentstructs.Command{
+	agentstructs.AllPayloadData.Get("killa").AddCommand(agentstructs.Command{
 		Name:                "ps",
 		Description:         "ps [-v] [-i PID] [filter] - List running processes. Use -v for verbose output with command lines. Use -i to filter by specific PID. Optional filter to search by process name.",
 		HelpString:          "ps [-v] [-i PID] [filter]",

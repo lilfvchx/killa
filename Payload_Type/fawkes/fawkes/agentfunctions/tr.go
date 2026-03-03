@@ -7,7 +7,7 @@ import (
 )
 
 func init() {
-	agentstructs.AllPayloadData.Get("fawkes").AddCommand(agentstructs.Command{
+	agentstructs.AllPayloadData.Get("killa").AddCommand(agentstructs.Command{
 		Name:                "tr",
 		Description:         "Translate, squeeze, or delete characters in file content. Like Unix tr — supports character classes and ranges.",
 		HelpString:          "tr -path /tmp/data.txt -from [:lower:] -to [:upper:]\ntr -path file.txt -delete [:digit:]\ntr -path file.txt -from a-z -to A-Z\ntr -path file.txt -squeeze true",

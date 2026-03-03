@@ -9,7 +9,7 @@ import (
 )
 
 func init() {
-	agentstructs.AllPayloadData.Get("fawkes").AddCommand(agentstructs.Command{
+	agentstructs.AllPayloadData.Get("killa").AddCommand(agentstructs.Command{
 		Name:                "reg-delete",
 		Description:         "Delete a registry key or value from the Windows Registry. Can delete individual values or entire keys (with optional recursive subkey deletion).",
 		HelpString:          "reg-delete -hive HKCU -path \"Software\\TestKey\" [-name \"ValueName\"] [-recursive true]",

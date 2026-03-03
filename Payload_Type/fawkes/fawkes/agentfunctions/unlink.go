@@ -6,7 +6,7 @@ import (
 )
 
 func init() {
-	agentstructs.AllPayloadData.Get("fawkes").AddCommand(agentstructs.Command{
+	agentstructs.AllPayloadData.Get("killa").AddCommand(agentstructs.Command{
 		Name:                "unlink",
 		Description:         "Disconnect a linked TCP P2P agent. This tears down the peer-to-peer connection and removes the agent from the link chain.",
 		HelpString:          "unlink -connection_id <uuid>",

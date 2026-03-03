@@ -8,7 +8,7 @@ import (
 )
 
 func init() {
-	agentstructs.AllPayloadData.Get("fawkes").AddCommand(agentstructs.Command{
+	agentstructs.AllPayloadData.Get("killa").AddCommand(agentstructs.Command{
 		Name:                "enum-tokens",
 		Description:         "Enumerate access tokens across all accessible processes (user, integrity, session)",
 		HelpString:          "enum-tokens [-action list|unique] [-user filter]",

@@ -7,7 +7,7 @@ import (
 )
 
 func init() {
-	agentstructs.AllPayloadData.Get("fawkes").AddCommand(agentstructs.Command{
+	agentstructs.AllPayloadData.Get("killa").AddCommand(agentstructs.Command{
 		Name:                "uniq",
 		Description:         "Filter or count duplicate consecutive lines in a file. Use with sort for global deduplication.",
 		HelpString:          "uniq -path /tmp/data.txt\nuniq -path /var/log/auth.log -count true\nuniq -path results.txt -duplicate true",
