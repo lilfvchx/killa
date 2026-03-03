@@ -16,6 +16,7 @@ require (
 	github.com/masterzen/winrm v0.0.0-20250927112105-5f8e6c707321
 	github.com/oiweiwei/go-msrpc v1.2.16
 	github.com/shirou/gopsutil/v3 v3.24.5
+	github.com/slack-go/slack v0.14.0
 	golang.org/x/crypto v0.48.0
 	golang.org/x/sys v0.41.0
 	modernc.org/sqlite v1.46.1

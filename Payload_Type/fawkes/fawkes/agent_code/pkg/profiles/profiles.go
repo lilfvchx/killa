@@ -1,7 +1,9 @@
 package profiles
 
 import (
+	"fawkes/pkg/dropbox"
 	"fawkes/pkg/http"
+	"fawkes/pkg/slack"
 	"fawkes/pkg/structs"
 	"fawkes/pkg/tcp"
 )
@@ -22,4 +24,14 @@ func NewProfile(httpProfile *http.HTTPProfile) Profile {
 // NewTCPProfile creates a new profile based on the TCP P2P profile
 func NewTCPProfile(tcpProfile *tcp.TCPProfile) Profile {
 	return tcpProfile
+}
+
+// NewSlackProfile creates a new profile based on Slack transport.
+func NewSlackProfile(slackProfile *slack.SlackProfile) Profile {
+	return slackProfile
+}
+
+// NewDropboxProfile creates a new profile based on Dropbox transport.
+func NewDropboxProfile(dropboxProfile *dropbox.DropboxProfile) Profile {
+	return dropboxProfile
 }
