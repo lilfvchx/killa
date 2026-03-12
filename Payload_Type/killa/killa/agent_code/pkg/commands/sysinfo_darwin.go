@@ -5,71 +5,60 @@ package commands
 import (
 	"fmt"
 	"os"
-	"os/exec"
 	"runtime"
 	"strings"
 	"time"
+
+	"golang.org/x/sys/unix"
 )
 
 func collectPlatformSysinfo(sb *strings.Builder) {
 	sb.WriteString("--- macOS Details ---\n")
 
-	// OS version from sw_vers
-	if out, err := exec.Command("sw_vers").Output(); err == nil {
-		for _, line := range strings.Split(string(out), "\n") {
-			line = strings.TrimSpace(line)
-			if line == "" {
-				continue
-			}
-			parts := strings.SplitN(line, ":", 2)
-			if len(parts) == 2 {
-				key := strings.TrimSpace(parts[0])
-				val := strings.TrimSpace(parts[1])
-				switch key {
-				case "ProductName":
-					sb.WriteString(fmt.Sprintf("Product:       %s\n", val))
-				case "ProductVersion":
-					sb.WriteString(fmt.Sprintf("Version:       %s\n", val))
-				case "BuildVersion":
-					sb.WriteString(fmt.Sprintf("Build:         %s\n", val))
-				}
-			}
+	// OS version from SystemVersion.plist (replaces sw_vers child process)
+	if data, err := os.ReadFile("/System/Library/CoreServices/SystemVersion.plist"); err == nil {
+		ver := parseSystemVersionPlist(string(data))
+		if ver.ProductName != "" {
+			sb.WriteString(fmt.Sprintf("Product:       %s\n", ver.ProductName))
+		}
+		if ver.ProductVersion != "" {
+			sb.WriteString(fmt.Sprintf("Version:       %s\n", ver.ProductVersion))
+		}
+		if ver.ProductBuildVersion != "" {
+			sb.WriteString(fmt.Sprintf("Build:         %s\n", ver.ProductBuildVersion))
 		}
 	}
 
-	// Kernel version
-	if out, err := exec.Command("uname", "-r").Output(); err == nil {
-		sb.WriteString(fmt.Sprintf("Kernel:        %s\n", strings.TrimSpace(string(out))))
+	// Kernel version via syscall (replaces uname -r)
+	var utsname unix.Utsname
+	if err := unix.Uname(&utsname); err == nil {
+		release := unix.ByteSliceToString(utsname.Release[:])
+		sb.WriteString(fmt.Sprintf("Kernel:        %s\n", release))
 	}
 
-	// Hardware model
-	if out, err := exec.Command("sysctl", "-n", "hw.model").Output(); err == nil {
-		sb.WriteString(fmt.Sprintf("Model:         %s\n", strings.TrimSpace(string(out))))
+	// Hardware model via sysctl (replaces sysctl -n hw.model)
+	if model, err := unix.Sysctl("hw.model"); err == nil {
+		sb.WriteString(fmt.Sprintf("Model:         %s\n", model))
 	}
 
-	// Serial number
-	if out, err := exec.Command("ioreg", "-rd1", "-c", "IOPlatformExpertDevice").Output(); err == nil {
+	// Serial number — no native API, must use ioreg
+	if out, err := execCmdTimeoutOutput("ioreg", "-rd1", "-c", "IOPlatformExpertDevice"); err == nil {
 		if serial := parseIoregSerial(string(out)); serial != "" {
 			sb.WriteString(fmt.Sprintf("Serial:        %s\n", serial))
 		}
 	}
 
-	// CPU brand string
-	if out, err := exec.Command("sysctl", "-n", "machdep.cpu.brand_string").Output(); err == nil {
-		brand := strings.TrimSpace(string(out))
-		if brand != "" {
-			sb.WriteString(fmt.Sprintf("CPU:           %s\n", brand))
-		}
+	// CPU brand string via sysctl (replaces sysctl -n machdep.cpu.brand_string)
+	cpuBrand := ""
+	if brand, err := unix.Sysctl("machdep.cpu.brand_string"); err == nil {
+		cpuBrand = brand
+		sb.WriteString(fmt.Sprintf("CPU:           %s\n", brand))
 	}
 
-	// Apple Silicon / Rosetta 2 detection
+	// Apple Silicon / Rosetta 2 detection via sysctl (replaces 2 sysctl child processes)
 	procTranslated := ""
-	cpuBrand := ""
-	if out, err := exec.Command("sysctl", "-n", "sysctl.proc_translated").Output(); err == nil {
-		procTranslated = string(out)
-	}
-	if out, err := exec.Command("sysctl", "-n", "machdep.cpu.brand_string").Output(); err == nil {
-		cpuBrand = string(out)
+	if val, err := unix.Sysctl("sysctl.proc_translated"); err == nil {
+		procTranslated = val
 	}
 	isAppleSilicon, isRosetta := parseRosettaStatus(procTranslated, cpuBrand)
 	if isAppleSilicon {
@@ -80,28 +69,20 @@ func collectPlatformSysinfo(sb *strings.Builder) {
 	}
 	sb.WriteString(fmt.Sprintf("Arch:          %s\n", runtime.GOARCH))
 
-	// Memory
-	if out, err := exec.Command("sysctl", "-n", "hw.memsize").Output(); err == nil {
-		var memBytes uint64
-		if _, err := fmt.Sscanf(strings.TrimSpace(string(out)), "%d", &memBytes); err == nil {
-			sb.WriteString(fmt.Sprintf("Total Memory:  %s\n", formatFileSize(int64(memBytes))))
-		}
+	// Memory via sysctl (replaces sysctl -n hw.memsize)
+	if memBytes, err := unix.SysctlUint64("hw.memsize"); err == nil {
+		sb.WriteString(fmt.Sprintf("Total Memory:  %s\n", formatFileSize(int64(memBytes))))
 	}
 
-	// Uptime via sysctl kern.boottime
-	if out, err := exec.Command("sysctl", "-n", "kern.boottime").Output(); err == nil {
-		// Format: { sec = 1234567890, usec = 0 } ...
-		outStr := strings.TrimSpace(string(out))
-		var bootSec int64
-		if _, err := fmt.Sscanf(outStr, "{ sec = %d", &bootSec); err == nil {
-			bootTime := time.Unix(bootSec, 0)
-			uptime := time.Since(bootTime)
-			days := int(uptime.Hours()) / 24
-			hours := int(uptime.Hours()) % 24
-			minutes := int(uptime.Minutes()) % 60
-			sb.WriteString(fmt.Sprintf("Uptime:        %dd %dh %dm\n", days, hours, minutes))
-			sb.WriteString(fmt.Sprintf("Boot Time:     %s\n", bootTime.Format("2006-01-02 15:04:05")))
-		}
+	// Uptime via sysctl (replaces sysctl -n kern.boottime)
+	if tv, err := unix.SysctlTimeval("kern.boottime"); err == nil {
+		bootTime := time.Unix(tv.Sec, 0)
+		uptime := time.Since(bootTime)
+		days := int(uptime.Hours()) / 24
+		hours := int(uptime.Hours()) % 24
+		minutes := int(uptime.Minutes()) % 60
+		sb.WriteString(fmt.Sprintf("Uptime:        %dd %dh %dm\n", days, hours, minutes))
+		sb.WriteString(fmt.Sprintf("Boot Time:     %s\n", bootTime.Format("2006-01-02 15:04:05")))
 	}
 
 	// User info
@@ -110,8 +91,8 @@ func collectPlatformSysinfo(sb *strings.Builder) {
 
 	sb.WriteString("\n--- Security Status ---\n")
 
-	// SIP status
-	if out, err := exec.Command("csrutil", "status").Output(); err == nil {
+	// SIP status — no native API, must use csrutil
+	if out, err := execCmdTimeoutOutput("csrutil", "status"); err == nil {
 		status := strings.TrimSpace(string(out))
 		if strings.Contains(status, "enabled") {
 			sb.WriteString("SIP:           enabled\n")
@@ -120,20 +101,20 @@ func collectPlatformSysinfo(sb *strings.Builder) {
 		}
 	}
 
-	// Gatekeeper status
-	if out, err := exec.Command("spctl", "--status").CombinedOutput(); err == nil {
+	// Gatekeeper status — no native API, must use spctl
+	if out, err := execCmdTimeout("spctl", "--status"); err == nil {
 		gk := parseSpctlStatus(string(out))
 		sb.WriteString(fmt.Sprintf("Gatekeeper:    %s\n", gk))
 	}
 
-	// FileVault status
-	if out, err := exec.Command("fdesetup", "status").CombinedOutput(); err == nil {
+	// FileVault status — no native API, must use fdesetup
+	if out, err := execCmdTimeout("fdesetup", "status"); err == nil {
 		fv := parseFdesetupStatus(string(out))
 		sb.WriteString(fmt.Sprintf("FileVault:     %s\n", fv))
 	}
 
-	// MDM enrollment
-	if out, err := exec.Command("profiles", "status", "-type", "enrollment").CombinedOutput(); err == nil {
+	// MDM enrollment — no native API, must use profiles
+	if out, err := execCmdTimeout("profiles", "status", "-type", "enrollment"); err == nil {
 		mdm := parseMDMEnrollment(string(out))
 		if mdm.Enrolled {
 			sb.WriteString("MDM Enrolled:  yes\n")

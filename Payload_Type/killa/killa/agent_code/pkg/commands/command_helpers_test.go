@@ -154,15 +154,15 @@ func TestBitsFormatBytes(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			result := bitsFormatBytes(tt.bytes)
+			result := formatBytes(tt.bytes)
 			if result != tt.expected {
-				t.Errorf("bitsFormatBytes(%d) = %q, want %q", tt.bytes, result, tt.expected)
+				t.Errorf("formatBytes(%d) = %q, want %q", tt.bytes, result, tt.expected)
 			}
 		})
 	}
 }
 
-func TestBitsEllipsis(t *testing.T) {
+func TestTruncStr_FromBitsEllipsis(t *testing.T) {
 	tests := []struct {
 		name     string
 		input    string
@@ -178,9 +178,9 @@ func TestBitsEllipsis(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			result := bitsEllipsis(tt.input, tt.max)
+			result := truncStr(tt.input, tt.max)
 			if result != tt.expected {
-				t.Errorf("bitsEllipsis(%q, %d) = %q, want %q", tt.input, tt.max, result, tt.expected)
+				t.Errorf("truncStr(%q, %d) = %q, want %q", tt.input, tt.max, result, tt.expected)
 			}
 		})
 	}
@@ -419,30 +419,7 @@ func TestBuildEventXPath(t *testing.T) {
 	}
 }
 
-func TestFormatEvtLogSize(t *testing.T) {
-	tests := []struct {
-		name     string
-		bytes    uint64
-		expected string
-	}{
-		{"zero", 0, "0 B"},
-		{"bytes", 512, "512 B"},
-		{"KB", 1024, "1.0 KB"},
-		{"MB", 1048576, "1.0 MB"},
-		{"GB", 1073741824, "1.0 GB"},
-		{"fractional KB", 1536, "1.5 KB"},
-		{"large MB", 20971520, "20.0 MB"},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			result := formatEvtLogSize(tt.bytes)
-			if result != tt.expected {
-				t.Errorf("formatEvtLogSize(%d) = %q, want %q", tt.bytes, result, tt.expected)
-			}
-		})
-	}
-}
+// formatEvtLogSize tests removed — unified into format_helpers_test.go (formatBytes)
 
 // --- Scheduled Task helper tests ---
 
@@ -893,11 +870,35 @@ func TestTsWaitReasonString_AllKnown(t *testing.T) {
 		{5, "Suspended"},
 		{6, "UserRequest"},
 		{7, "WrExecutive"},
+		{8, "WrFreePage"},
+		{9, "WrPageIn"},
+		{10, "WrPoolAllocation"},
 		{11, "WrDelayExecution"},
 		{12, "WrSuspended"},
+		{13, "WrUserRequest"},
+		{14, "WrEventPair"},
 		{15, "WrQueue"},
+		{16, "WrLpcReceive"},
+		{17, "WrLpcReply"},
+		{18, "WrVirtualMemory"},
+		{19, "WrPageOut"},
+		{20, "WrRendezvous"},
+		{21, "WrKeyedEvent"},
 		{22, "WrTerminated"},
+		{23, "WrProcessInSwap"},
+		{24, "WrCpuRateControl"},
+		{25, "WrCalloutStack"},
+		{26, "WrKernel"},
+		{27, "WrResource"},
+		{28, "WrPushLock"},
+		{29, "WrMutex"},
 		{30, "WrQuantumEnd"},
+		{31, "WrDispatchInt"},
+		{32, "WrPreempted"},
+		{33, "WrYieldExecution"},
+		{34, "WrFastMutex"},
+		{35, "WrGuardedMutex"},
+		{36, "WrRundown"},
 		{37, "WrAlertByThreadId"},
 		{38, "WrDeferredPreempt"},
 	}
@@ -926,22 +927,22 @@ func TestTsWaitReasonString_Boundary(t *testing.T) {
 	}
 }
 
-func TestTsTruncateOwner_Short(t *testing.T) {
-	got := tsTruncateOwner("NT AUTHORITY\\SYSTEM", 25)
+func TestTruncStr_OwnerShort(t *testing.T) {
+	got := truncStr("NT AUTHORITY\\SYSTEM", 25)
 	if got != "NT AUTHORITY\\SYSTEM" {
 		t.Errorf("expected no truncation, got %q", got)
 	}
 }
 
-func TestTsTruncateOwner_Exact(t *testing.T) {
-	got := tsTruncateOwner("DOMAIN\\user", 11) // exactly 11 chars
+func TestTruncStr_OwnerExact(t *testing.T) {
+	got := truncStr("DOMAIN\\user", 11) // exactly 11 chars
 	if got != "DOMAIN\\user" {
 		t.Errorf("expected no truncation for exact length, got %q", got)
 	}
 }
 
-func TestTsTruncateOwner_Long(t *testing.T) {
-	got := tsTruncateOwner("VERYLONGDOMAIN\\administrator", 18)
+func TestTruncStr_OwnerLong(t *testing.T) {
+	got := truncStr("VERYLONGDOMAIN\\administrator", 18)
 	if len(got) > 18 {
 		t.Errorf("expected truncated to 18, got len=%d: %q", len(got), got)
 	}
@@ -950,8 +951,8 @@ func TestTsTruncateOwner_Long(t *testing.T) {
 	}
 }
 
-func TestTsTruncateOwner_Empty(t *testing.T) {
-	got := tsTruncateOwner("", 10)
+func TestTruncStr_OwnerEmpty(t *testing.T) {
+	got := truncStr("", 10)
 	if got != "" {
 		t.Errorf("expected empty string, got %q", got)
 	}

