@@ -1,20 +1,20 @@
-# Fawkes Mythic C2 Agent
+# killa Mythic C2 Agent
 
-<img src="agent_icons/fawkes.svg" width="100" />
+<img src="agent_icons/killa.svg" width="100" />
 
-Fawkes is an entirely vibe-coded Mythic C2 agent. It started as an "I wonder" and has turned into a goal. My goal is to not write a single line of code for this agent, instead, exclusively producing it at a prompt.
+killa is an entirely vibe-coded Mythic C2 agent. It started as an "I wonder" and has turned into a goal. My goal is to not write a single line of code for this agent, instead, exclusively producing it at a prompt.
 
 I originally attempted to write the agent myself, but after cloning the example container, reading through mythic docs, watching the dev series youtube videos, and copying code from other agents like Merlin or Freyja, I decided I just didn't have time to develop my own agent. A prompt though, that I have time for.
 
-Fawkes is a golang based agent with cross-platform capabilities. It supports **Windows** (EXE, DLL, and shellcode payloads), **Linux** (ELF binaries and shared libraries), and **macOS** (Mach-O binaries for Intel and Apple Silicon). **207 commands** total: 108 cross-platform, 83 Windows-only, 13 Unix-only, 7 Linux-only, and 5 macOS-only (some commands have platform-specific implementations sharing one user-facing name, e.g. screenshot). Supports HTTP egress and TCP peer-to-peer (P2P) linking for internal pivoting.
+killa is a golang based agent with cross-platform capabilities. It supports **Windows** (EXE, DLL, and shellcode payloads), **Linux** (ELF binaries and shared libraries), and **macOS** (Mach-O binaries for Intel and Apple Silicon). **207 commands** total: 108 cross-platform, 83 Windows-only, 13 Unix-only, 7 Linux-only, and 5 macOS-only (some commands have platform-specific implementations sharing one user-facing name, e.g. screenshot). Supports HTTP egress and TCP peer-to-peer (P2P) linking for internal pivoting.
 
 ## Installation
-To install Fawkes, you'll need Mythic installed on a remote computer. You can find installation instructions for Mythic at the [Mythic project page](https://github.com/its-a-feature/Mythic/).
+To install killa, you'll need Mythic installed on a remote computer. You can find installation instructions for Mythic at the [Mythic project page](https://github.com/its-a-feature/Mythic/).
 
 From the Mythic install directory:
 
 ```
-./mythic-cli install github https://github.com/galoryber/fawkes
+./mythic-cli install github https://github.com/galoryber/killa
 ```
 
 ## Commands Quick Reference
@@ -476,6 +476,31 @@ After that, it's been exclusively feeding Claude PoC links and asking for cool s
 - **Opus Injection** - Callback-based injection techniques - [Variant details](research/injection-techniques.md#opus-injection)
 - Phoenix icon from [OpenClipart](https://openclipart.org/detail/229408/colorful-phoenix-line-art-12)
 
+
+## Troubleshooting: still detected as fawkes
+
+If Mythic UI/logs still show `fawkes` after updating this repo to `killa`, force a full metadata refresh:
+
+```bash
+# 1) Reinstall the container repo
+./mythic-cli uninstall github https://github.com/galoryber/killa
+./mythic-cli install github https://github.com/galoryber/killa
+
+# 2) Stop/start payload + C2 containers to reload metadata
+./mythic-cli payload stop killa
+./mythic-cli payload start killa
+./mythic-cli c2 stop slack
+./mythic-cli c2 stop dropbox
+./mythic-cli c2 start slack
+./mythic-cli c2 start dropbox
+
+# 3) Verify from Mythic UI/logs
+#    - Payload Type shows: killa
+#    - Supported C2 profiles show: http,tcp,slack,dropbox
+```
+
+If stale metadata persists, clear local Mythic cache/containers and repeat install/start sequence before rebuilding payloads.
+
 ## C2 Profile Troubleshooting (Slack/Dropbox)
 
 If Mythic fails when installing or syncing the `slack` / `dropbox` C2 profiles with an error like:
@@ -488,8 +513,8 @@ reinstall the container/profile so Mythic re-indexes the profile path and Docker
 
 ```bash
 # from Mythic install root
-./mythic-cli uninstall github https://github.com/galoryber/fawkes
-./mythic-cli install github https://github.com/galoryber/fawkes
+./mythic-cli uninstall github https://github.com/galoryber/killa
+./mythic-cli install github https://github.com/galoryber/killa
 ./mythic-cli c2 start slack
 ./mythic-cli c2 start dropbox
 ```
