@@ -17,6 +17,11 @@ RUN apt-get update && apt-get install -y \
 RUN git clone https://github.com/monoxgas/sRDI /opt/sRDI && \
     pip3 install --break-system-packages pefile
 
+# Install go-winres for PE metadata injection (version info, icon, manifest)
+# Copies to /usr/local/bin so the builder can call it without Go PATH setup
+RUN go install github.com/tc-hib/go-winres@latest && \
+    cp "$(go env GOPATH)/bin/go-winres" /usr/local/bin/go-winres
+
 COPY [".", "."]
 
 RUN make build

