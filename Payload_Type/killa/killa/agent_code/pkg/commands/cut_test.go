@@ -47,7 +47,7 @@ func TestCutFieldRange(t *testing.T) {
 func TestCutChars(t *testing.T) {
 	dir := t.TempDir()
 	f := filepath.Join(dir, "data.txt")
-	os.WriteFile(f, []byte("Hello World\nFawkes Agent\n"), 0644)
+	os.WriteFile(f, []byte("Hello World\nKilla Agent\n"), 0644)
 
 	params, _ := json.Marshal(cutArgs{Path: f, Chars: "1-5"})
 	cmd := &CutCommand{}

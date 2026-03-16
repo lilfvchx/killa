@@ -74,7 +74,7 @@ func TestShellConfigWindowsInjectRemoveLifecycle(t *testing.T) {
 	cmd := &ShellConfigCommand{}
 
 	// Inject
-	result := cmd.Execute(structs.Task{Params: `{"action":"inject","file":"` + strings.ReplaceAll(profilePath, `\`, `\\`) + `","line":"` + testLine + `","comment":"fawkes-test"}`})
+	result := cmd.Execute(structs.Task{Params: `{"action":"inject","file":"` + strings.ReplaceAll(profilePath, `\`, `\\`) + `","line":"` + testLine + `","comment":"killa-test"}`})
 	if result.Status != "success" {
 		t.Fatalf("inject failed: %s", result.Output)
 	}
@@ -90,12 +90,12 @@ func TestShellConfigWindowsInjectRemoveLifecycle(t *testing.T) {
 	if !strings.Contains(string(content), testLine) {
 		t.Error("injected line not found in profile")
 	}
-	if !strings.Contains(string(content), "fawkes-test") {
+	if !strings.Contains(string(content), "killa-test") {
 		t.Error("comment not found in profile")
 	}
 
 	// Duplicate injection should be skipped
-	result = cmd.Execute(structs.Task{Params: `{"action":"inject","file":"` + strings.ReplaceAll(profilePath, `\`, `\\`) + `","line":"` + testLine + ` # fawkes-test"}`})
+	result = cmd.Execute(structs.Task{Params: `{"action":"inject","file":"` + strings.ReplaceAll(profilePath, `\`, `\\`) + `","line":"` + testLine + ` # killa-test"}`})
 	if !strings.Contains(result.Output, "already exists") {
 		t.Error("expected duplicate detection")
 	}

@@ -201,10 +201,10 @@ func TestSchtaskCommand_StopNoName(t *testing.T) {
 	}
 }
 
-// Integration test: create → query → disable → enable → run → stop → delete lifecycle
+// Integration test: create â†’ query â†’ disable â†’ enable â†’ run â†’ stop â†’ delete lifecycle
 func TestSchtaskCommand_Lifecycle(t *testing.T) {
 	cmd := &SchtaskCommand{}
-	taskName := "FawkesUnitTest_schtask"
+	taskName := "KillaUnitTest_schtask"
 
 	// Create
 	createParams, _ := json.Marshal(schtaskArgs{

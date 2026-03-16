@@ -1,6 +1,6 @@
 # Injection Technique Details
 
-Detailed variant breakdowns for Fawkes injection commands. For usage, see the main [README](../README.md).
+Detailed variant breakdowns for Killa injection commands. For usage, see the main [README](../README.md).
 
 ## PoolParty Injection
 

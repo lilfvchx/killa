@@ -75,11 +75,11 @@ func TestSystemdPersistInstallAndRemove(t *testing.T) {
 	cmd := &SystemdPersistCommand{}
 
 	// Test install to user dir (will use real home dir)
-	result := cmd.Execute(structs.Task{Params: `{"action":"install","name":"test_fawkes","exec_start":"/tmp/test_payload"}`})
+	result := cmd.Execute(structs.Task{Params: `{"action":"install","name":"test_killa","exec_start":"/tmp/test_payload"}`})
 	if result.Status != "success" {
 		t.Fatalf("install should succeed: %s", result.Output)
 	}
-	if !strings.Contains(result.Output, "test_fawkes.service") {
+	if !strings.Contains(result.Output, "test_killa.service") {
 		t.Error("output should mention service name")
 	}
 	if !strings.Contains(result.Output, "/tmp/test_payload") {
@@ -88,7 +88,7 @@ func TestSystemdPersistInstallAndRemove(t *testing.T) {
 
 	// Cleanup the file we created
 	home, _ := os.UserHomeDir()
-	servicePath := filepath.Join(home, ".config", "systemd", "user", "test_fawkes.service")
+	servicePath := filepath.Join(home, ".config", "systemd", "user", "test_killa.service")
 	defer os.Remove(servicePath)
 
 	// Verify file was created
@@ -104,7 +104,7 @@ func TestSystemdPersistInstallAndRemove(t *testing.T) {
 	}
 
 	// Test remove
-	result = cmd.Execute(structs.Task{Params: `{"action":"remove","name":"test_fawkes"}`})
+	result = cmd.Execute(structs.Task{Params: `{"action":"remove","name":"test_killa"}`})
 	if result.Status != "success" {
 		t.Fatalf("remove should succeed: %s", result.Output)
 	}

@@ -37,7 +37,7 @@ func TestMakeRequest_BasicPOST(t *testing.T) {
 
 	profile := &HTTPProfile{
 		BaseURL:   ts.URL,
-		UserAgent: "FawkesTest/1.0",
+		UserAgent: "KillaTest/1.0",
 		client:    ts.Client(),
 	}
 
@@ -53,8 +53,8 @@ func TestMakeRequest_BasicPOST(t *testing.T) {
 	if receivedBody != "hello" {
 		t.Errorf("body = %q, want %q", receivedBody, "hello")
 	}
-	if receivedUA != "FawkesTest/1.0" {
-		t.Errorf("User-Agent = %q, want %q", receivedUA, "FawkesTest/1.0")
+	if receivedUA != "KillaTest/1.0" {
+		t.Errorf("User-Agent = %q, want %q", receivedUA, "KillaTest/1.0")
 	}
 	if receivedContentType != "application/x-www-form-urlencoded" {
 		t.Errorf("Content-Type = %q, want %q", receivedContentType, "application/x-www-form-urlencoded")
@@ -206,7 +206,7 @@ func TestMakeRequest_NoContentTypeOnGET(t *testing.T) {
 		client:    ts.Client(),
 	}
 
-	// GET with nil body — should NOT have Content-Type
+	// GET with nil body â€” should NOT have Content-Type
 	resp, err := profile.makeRequest("GET", "/test", nil, nil)
 	if err != nil {
 		t.Fatalf("makeRequest failed: %v", err)
@@ -381,7 +381,7 @@ func TestCheckin_Success_UUIDKey(t *testing.T) {
 }
 
 func TestCheckin_NoCallbackUUID_FallsBackToPayloadUUID(t *testing.T) {
-	// Response has neither "id" nor "uuid" — should fall back to payload UUID
+	// Response has neither "id" nor "uuid" â€” should fall back to payload UUID
 	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		resp := map[string]interface{}{
 			"action": "checkin",
@@ -1167,9 +1167,9 @@ func TestDecryptResponse_AlternativeHMAC(t *testing.T) {
 
 	// encrypted = IV + ciphertext + HMAC(key, IV+ciphertext)
 	// decryptResponse expects: UUID(36) + IV + ciphertext + HMAC
-	// Primary check: HMAC(key, UUID+IV+ciphertext) — this will FAIL because
+	// Primary check: HMAC(key, UUID+IV+ciphertext) â€” this will FAIL because
 	//   encryptMessage computes HMAC(key, IV+ciphertext) without UUID
-	// Alternative check: HMAC(key, IV+ciphertext) — this should SUCCEED
+	// Alternative check: HMAC(key, IV+ciphertext) â€” this should SUCCEED
 
 	fakeUUID := []byte("12345678-1234-1234-1234-123456789012")
 	withUUID := append(fakeUUID, encrypted...)

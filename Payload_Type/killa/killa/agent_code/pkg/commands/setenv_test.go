@@ -16,56 +16,56 @@ func TestSetenvCommandName(t *testing.T) {
 }
 
 func TestSetenvSetJSON(t *testing.T) {
-	defer os.Unsetenv("FAWKES_SETENV_TEST")
+	defer os.Unsetenv("KILLA_SETENV_TEST")
 
 	cmd := &SetenvCommand{}
 	task := structs.NewTask("t", "setenv", "")
-	task.Params = `{"action":"set","name":"FAWKES_SETENV_TEST","value":"hello"}`
+	task.Params = `{"action":"set","name":"KILLA_SETENV_TEST","value":"hello"}`
 	result := cmd.Execute(task)
 	if result.Status != "success" {
 		t.Errorf("expected success, got %q: %s", result.Status, result.Output)
 	}
-	if os.Getenv("FAWKES_SETENV_TEST") != "hello" {
+	if os.Getenv("KILLA_SETENV_TEST") != "hello" {
 		t.Error("env var should be set to 'hello'")
 	}
 }
 
 func TestSetenvUnsetJSON(t *testing.T) {
-	os.Setenv("FAWKES_UNSET_TEST", "val")
+	os.Setenv("KILLA_UNSET_TEST", "val")
 
 	cmd := &SetenvCommand{}
 	task := structs.NewTask("t", "setenv", "")
-	task.Params = `{"action":"unset","name":"FAWKES_UNSET_TEST"}`
+	task.Params = `{"action":"unset","name":"KILLA_UNSET_TEST"}`
 	result := cmd.Execute(task)
 	if result.Status != "success" {
 		t.Errorf("expected success, got %q: %s", result.Status, result.Output)
 	}
-	if os.Getenv("FAWKES_UNSET_TEST") != "" {
+	if os.Getenv("KILLA_UNSET_TEST") != "" {
 		t.Error("env var should be unset")
 	}
 }
 
 func TestSetenvSetManual(t *testing.T) {
-	defer os.Unsetenv("FAWKES_MANUAL_TEST")
+	defer os.Unsetenv("KILLA_MANUAL_TEST")
 
 	cmd := &SetenvCommand{}
 	task := structs.NewTask("t", "setenv", "")
-	task.Params = "set FAWKES_MANUAL_TEST=world"
+	task.Params = "set KILLA_MANUAL_TEST=world"
 	result := cmd.Execute(task)
 	if result.Status != "success" {
 		t.Errorf("expected success, got %q: %s", result.Status, result.Output)
 	}
-	if os.Getenv("FAWKES_MANUAL_TEST") != "world" {
+	if os.Getenv("KILLA_MANUAL_TEST") != "world" {
 		t.Error("env var should be set to 'world'")
 	}
 }
 
 func TestSetenvUnsetManual(t *testing.T) {
-	os.Setenv("FAWKES_MANUAL_UNSET", "val")
+	os.Setenv("KILLA_MANUAL_UNSET", "val")
 
 	cmd := &SetenvCommand{}
 	task := structs.NewTask("t", "setenv", "")
-	task.Params = "unset FAWKES_MANUAL_UNSET"
+	task.Params = "unset KILLA_MANUAL_UNSET"
 	result := cmd.Execute(task)
 	if result.Status != "success" {
 		t.Errorf("expected success, got %q: %s", result.Status, result.Output)

@@ -85,8 +85,8 @@ func TestPersistCommand_RegistryBadHive(t *testing.T) {
 
 func TestPersistCOMHijack_Install(t *testing.T) {
 	// Use a unique test CLSID that won't conflict with anything
-	testCLSID := "{00000000-0000-0000-0000-FAWKESTEST01}"
-	testPath := `C:\test\fawkes_test.dll`
+	testCLSID := "{00000000-0000-0000-0000-KILLATEST01}"
+	testPath := `C:\test\killa_test.dll`
 
 	result := persistCOMHijack(persistArgs{
 		Method: "com-hijack",
@@ -120,8 +120,8 @@ func TestPersistCOMHijack_Install(t *testing.T) {
 }
 
 func TestPersistCOMHijack_Remove(t *testing.T) {
-	testCLSID := "{00000000-0000-0000-0000-FAWKESTEST02}"
-	testPath := `C:\test\fawkes_test.dll`
+	testCLSID := "{00000000-0000-0000-0000-KILLATEST02}"
+	testPath := `C:\test\killa_test.dll`
 
 	// First install
 	result := persistCOMHijack(persistArgs{
@@ -156,7 +156,7 @@ func TestPersistCOMHijack_Remove(t *testing.T) {
 
 func TestPersistCOMHijack_DefaultCLSID(t *testing.T) {
 	// When no CLSID is provided, should use the default
-	testPath := `C:\test\fawkes_default_clsid.dll`
+	testPath := `C:\test\killa_default_clsid.dll`
 
 	result := persistCOMHijack(persistArgs{
 		Method: "com-hijack",
@@ -178,9 +178,9 @@ func TestPersistCOMHijack_DefaultCLSID(t *testing.T) {
 
 func TestPersistCOMHijack_NormalizeCLSID(t *testing.T) {
 	// CLSID without braces should get braces added
-	testCLSID := "00000000-0000-0000-0000-FAWKESTEST03"
+	testCLSID := "00000000-0000-0000-0000-KILLATEST03"
 	expectedCLSID := "{" + testCLSID + "}"
-	testPath := `C:\test\fawkes_norm.dll`
+	testPath := `C:\test\killa_norm.dll`
 
 	result := persistCOMHijack(persistArgs{
 		Method: "com-hijack",
@@ -202,8 +202,8 @@ func TestPersistCOMHijack_NormalizeCLSID(t *testing.T) {
 }
 
 func TestPersistCOMHijack_ThreadingModel(t *testing.T) {
-	testCLSID := "{00000000-0000-0000-0000-FAWKESTEST04}"
-	testPath := `C:\test\fawkes_tm.dll`
+	testCLSID := "{00000000-0000-0000-0000-KILLATEST04}"
+	testPath := `C:\test\killa_tm.dll`
 
 	result := persistCOMHijack(persistArgs{
 		Method: "com-hijack",
@@ -249,7 +249,7 @@ func TestPersistCOMHijack_RemoveNonexistent(t *testing.T) {
 // --- Screensaver Tests ---
 
 func TestPersistScreensaver_Install(t *testing.T) {
-	testPath := `C:\test\fawkes_screensaver.exe`
+	testPath := `C:\test\killa_screensaver.exe`
 
 	result := persistScreensaver(persistArgs{
 		Method:  "screensaver",
@@ -298,7 +298,7 @@ func TestPersistScreensaver_Install(t *testing.T) {
 }
 
 func TestPersistScreensaver_DefaultTimeout(t *testing.T) {
-	testPath := `C:\test\fawkes_ss_default.exe`
+	testPath := `C:\test\killa_ss_default.exe`
 
 	result := persistScreensaver(persistArgs{
 		Method: "screensaver",
@@ -319,7 +319,7 @@ func TestPersistScreensaver_DefaultTimeout(t *testing.T) {
 }
 
 func TestPersistScreensaver_Remove(t *testing.T) {
-	testPath := `C:\test\fawkes_ss_remove.exe`
+	testPath := `C:\test\killa_ss_remove.exe`
 
 	// First install
 	result := persistScreensaver(persistArgs{
@@ -382,7 +382,7 @@ func TestPersistList(t *testing.T) {
 
 func TestPersistList_DetectsCOMHijack(t *testing.T) {
 	testCLSID := "{42aedc87-2188-41fd-b9a3-0c966feabec1}"
-	testPath := `C:\test\fawkes_list_com.dll`
+	testPath := `C:\test\killa_list_com.dll`
 
 	// Install COM hijack
 	persistCOMHijack(persistArgs{

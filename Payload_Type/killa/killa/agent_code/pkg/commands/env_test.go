@@ -30,33 +30,33 @@ func TestEnvListAll(t *testing.T) {
 }
 
 func TestEnvFilter(t *testing.T) {
-	os.Setenv("FAWKES_TEST_VAR", "test_value")
-	defer os.Unsetenv("FAWKES_TEST_VAR")
+	os.Setenv("KILLA_TEST_VAR", "test_value")
+	defer os.Unsetenv("KILLA_TEST_VAR")
 
 	cmd := &EnvCommand{}
 	task := structs.NewTask("t", "env", "")
-	task.Params = "FAWKES_TEST"
+	task.Params = "KILLA_TEST"
 	result := cmd.Execute(task)
 	if result.Status != "success" {
 		t.Errorf("expected success, got %q", result.Status)
 	}
-	if !strings.Contains(result.Output, "FAWKES_TEST_VAR=test_value") {
+	if !strings.Contains(result.Output, "KILLA_TEST_VAR=test_value") {
 		t.Errorf("output should contain filtered var, got %q", result.Output)
 	}
 }
 
 func TestEnvFilterCaseInsensitive(t *testing.T) {
-	os.Setenv("FAWKES_CASE_TEST", "val")
-	defer os.Unsetenv("FAWKES_CASE_TEST")
+	os.Setenv("KILLA_CASE_TEST", "val")
+	defer os.Unsetenv("KILLA_CASE_TEST")
 
 	cmd := &EnvCommand{}
 	task := structs.NewTask("t", "env", "")
-	task.Params = "fawkes_case"
+	task.Params = "killa_case"
 	result := cmd.Execute(task)
 	if result.Status != "success" {
 		t.Errorf("expected success, got %q", result.Status)
 	}
-	if !strings.Contains(result.Output, "FAWKES_CASE_TEST") {
+	if !strings.Contains(result.Output, "KILLA_CASE_TEST") {
 		t.Error("filter should be case-insensitive")
 	}
 }

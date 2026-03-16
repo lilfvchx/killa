@@ -8,7 +8,7 @@ import (
 	"unsafe"
 )
 
-// Minimal Windows SCM service handler. When Fawkes is started by the Service
+// Minimal Windows SCM service handler. When Killa is started by the Service
 // Control Manager (e.g., via sc.exe create + sc.exe start), this code registers
 // with SCM, sets SERVICE_RUNNING, and then calls runAgent(). Without this, SCM
 // kills the process after ~30s because no ServiceMain was registered.
@@ -80,7 +80,7 @@ func svcMain(argc uint32, argv **uint16) uintptr {
 }
 
 // svcCtrlHandler handles SCM control requests (stop, shutdown, etc.).
-// We accept stop requests but don't actively handle them — the agent has
+// We accept stop requests but don't actively handle them â€” the agent has
 // its own shutdown logic via kill date and signal handling.
 func svcCtrlHandler(control, eventType, eventData, context uintptr) uintptr {
 	if control == 1 { // SERVICE_CONTROL_STOP

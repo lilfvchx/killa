@@ -10,7 +10,7 @@ import (
 )
 
 // =============================================================================
-// ssh-keys file operation tests — covers sshKeysAdd, sshKeysRemove,
+// ssh-keys file operation tests â€” covers sshKeysAdd, sshKeysRemove,
 // sshKeysReadPrivate, sshKeysList with temp dirs (the 0% coverage functions)
 // Basic parameter parsing tests are in commands_registry_test.go
 // =============================================================================
@@ -69,7 +69,7 @@ func TestSSHKeysList_WithComments(t *testing.T) {
 }
 
 func TestSSHKeysList_NonexistentFile(t *testing.T) {
-	result := sshKeysList(sshKeysArgs{Path: "/tmp/nonexistent_authorized_keys_test_fawkes"})
+	result := sshKeysList(sshKeysArgs{Path: "/tmp/nonexistent_authorized_keys_test_killa"})
 	if result.Status != "error" {
 		t.Errorf("expected error for nonexistent file, got %q", result.Status)
 	}
@@ -169,7 +169,7 @@ func TestSSHKeysRemove_MissingKey(t *testing.T) {
 func TestSSHKeysRemove_NonexistentFile(t *testing.T) {
 	result := sshKeysRemove(sshKeysArgs{
 		Key:  "testkey",
-		Path: "/tmp/nonexistent_authorized_keys_test_fawkes",
+		Path: "/tmp/nonexistent_authorized_keys_test_killa",
 	})
 	if result.Status != "error" {
 		t.Errorf("expected error for nonexistent file, got %q", result.Status)
@@ -249,7 +249,7 @@ func TestSSHKeysReadPrivate_SpecificPath(t *testing.T) {
 }
 
 func TestSSHKeysReadPrivate_NonexistentPath(t *testing.T) {
-	result := sshKeysReadPrivate(sshKeysArgs{Path: "/tmp/nonexistent_key_test_fawkes"})
+	result := sshKeysReadPrivate(sshKeysArgs{Path: "/tmp/nonexistent_key_test_killa"})
 	if result.Status != "error" {
 		t.Errorf("expected error for nonexistent path, got %q", result.Status)
 	}
@@ -266,7 +266,7 @@ func TestGetSSHDir_CurrentUser(t *testing.T) {
 }
 
 func TestGetSSHDir_NonexistentUser(t *testing.T) {
-	_, err := getSSHDir("nonexistent_user_12345_fawkes")
+	_, err := getSSHDir("nonexistent_user_12345_killa")
 	if err == nil {
 		t.Error("expected error for nonexistent user")
 	}

@@ -4,6 +4,6 @@ main
 .idea
 mythic_go_services.bin
 *.out
-Payload_Type/fawkes/fawkes/agent_code/fawkes
+Payload_Type/killa/killa/agent_code/killa
 .vscode/
-Payload_Type/fawkes/fawkes/agent_code/fawkes.exe
+Payload_Type/killa/killa/agent_code/killa.exe

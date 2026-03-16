@@ -1222,5 +1222,5 @@ func generatePaddingData(pattern []byte, count int) []byte {
 func Initialize() {
 	agentstructs.AllPayloadData.Get("killa").AddPayloadDefinition(payloadDefinition)
 	agentstructs.AllPayloadData.Get("killa").AddBuildFunction(build)
-	agentstructs.AllPayloadData.Get("killa").AddIcon(filepath.Join(".", "killa", "agentfunctions", "killa.svg"))
+	agentstructs.AllPayloadData.Get("killa").AddIcon(filepath.Join(".", "killa", "agentfunctions", "killa.png"))
 }

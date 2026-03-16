@@ -370,29 +370,29 @@ func TestEnvCommand_Execute(t *testing.T) {
 
 	t.Run("filter match", func(t *testing.T) {
 		// Set a unique env var for testing
-		os.Setenv("FAWKES_TEST_VAR_XYZ", "test_value")
-		defer os.Unsetenv("FAWKES_TEST_VAR_XYZ")
+		os.Setenv("KILLA_TEST_VAR_XYZ", "test_value")
+		defer os.Unsetenv("KILLA_TEST_VAR_XYZ")
 
-		task := structs.Task{Params: "FAWKES_TEST"}
+		task := structs.Task{Params: "KILLA_TEST"}
 		result := cmd.Execute(task)
 		if result.Status != "success" {
 			t.Errorf("expected success, got %q", result.Status)
 		}
-		if !strings.Contains(result.Output, "FAWKES_TEST_VAR_XYZ=test_value") {
+		if !strings.Contains(result.Output, "KILLA_TEST_VAR_XYZ=test_value") {
 			t.Errorf("output should contain our test var, got: %s", result.Output)
 		}
 	})
 
 	t.Run("filter case insensitive", func(t *testing.T) {
-		os.Setenv("FAWKES_CASE_TEST", "value")
-		defer os.Unsetenv("FAWKES_CASE_TEST")
+		os.Setenv("KILLA_CASE_TEST", "value")
+		defer os.Unsetenv("KILLA_CASE_TEST")
 
-		task := structs.Task{Params: "fawkes_case"}
+		task := structs.Task{Params: "killa_case"}
 		result := cmd.Execute(task)
 		if result.Status != "success" {
 			t.Errorf("expected success, got %q", result.Status)
 		}
-		if !strings.Contains(result.Output, "FAWKES_CASE_TEST") {
+		if !strings.Contains(result.Output, "KILLA_CASE_TEST") {
 			t.Errorf("case-insensitive filter should match, got: %s", result.Output)
 		}
 	})
@@ -613,7 +613,7 @@ func TestDownloadCommand_Execute(t *testing.T) {
 			done <- cmd.Execute(task)
 		}()
 
-		// Consume the channel message but don't finish — set stop instead
+		// Consume the channel message but don't finish â€” set stop instead
 		select {
 		case <-sendCh:
 			task.SetStop()

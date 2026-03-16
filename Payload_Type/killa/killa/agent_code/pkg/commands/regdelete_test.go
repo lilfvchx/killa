@@ -78,7 +78,7 @@ func TestRegDeleteInvalidHive(t *testing.T) {
 
 func TestRegDeleteValueLifecycle(t *testing.T) {
 	// Create a test key and value, then delete the value
-	testPath := `Software\FawkesTest\RegDeleteTest`
+	testPath := `Software\KillaTest\RegDeleteTest`
 	key, _, err := registry.CreateKey(registry.CURRENT_USER, testPath, registry.SET_VALUE|registry.READ)
 	if err != nil {
 		t.Fatalf("Failed to create test key: %v", err)
@@ -99,7 +99,7 @@ func TestRegDeleteValueLifecycle(t *testing.T) {
 	task := structs.Task{Params: string(params)}
 	result := cmd.Execute(task)
 	if result.Status != "success" {
-		t.Errorf("Expected success, got: %s — %s", result.Status, result.Output)
+		t.Errorf("Expected success, got: %s â€” %s", result.Status, result.Output)
 	}
 	if !strings.Contains(result.Output, "Deleted value") {
 		t.Errorf("Expected delete confirmation, got: %s", result.Output)
@@ -118,12 +118,12 @@ func TestRegDeleteValueLifecycle(t *testing.T) {
 
 	// Cleanup: delete the test keys
 	registry.DeleteKey(registry.CURRENT_USER, testPath)
-	registry.DeleteKey(registry.CURRENT_USER, `Software\FawkesTest`)
+	registry.DeleteKey(registry.CURRENT_USER, `Software\KillaTest`)
 }
 
 func TestRegDeleteKeyLifecycle(t *testing.T) {
 	// Create a test key, then delete it
-	testPath := `Software\FawkesTest\RegDeleteKeyTest`
+	testPath := `Software\KillaTest\RegDeleteKeyTest`
 	key, _, err := registry.CreateKey(registry.CURRENT_USER, testPath, registry.SET_VALUE)
 	if err != nil {
 		t.Fatalf("Failed to create test key: %v", err)
@@ -139,7 +139,7 @@ func TestRegDeleteKeyLifecycle(t *testing.T) {
 	task := structs.Task{Params: string(params)}
 	result := cmd.Execute(task)
 	if result.Status != "success" {
-		t.Errorf("Expected success, got: %s — %s", result.Status, result.Output)
+		t.Errorf("Expected success, got: %s â€” %s", result.Status, result.Output)
 	}
 	if !strings.Contains(result.Output, "Deleted key") {
 		t.Errorf("Expected delete confirmation, got: %s", result.Output)
@@ -152,12 +152,12 @@ func TestRegDeleteKeyLifecycle(t *testing.T) {
 	}
 
 	// Cleanup
-	registry.DeleteKey(registry.CURRENT_USER, `Software\FawkesTest`)
+	registry.DeleteKey(registry.CURRENT_USER, `Software\KillaTest`)
 }
 
 func TestRegDeleteKeyRecursive(t *testing.T) {
 	// Create a key tree: parent/child1, parent/child2
-	parentPath := `Software\FawkesTest\RecursiveTest`
+	parentPath := `Software\KillaTest\RecursiveTest`
 	child1Path := parentPath + `\Child1`
 	child2Path := parentPath + `\Child2`
 
@@ -190,7 +190,7 @@ func TestRegDeleteKeyRecursive(t *testing.T) {
 	task = structs.Task{Params: string(params)}
 	result = cmd.Execute(task)
 	if result.Status != "success" {
-		t.Errorf("Expected success for recursive delete, got: %s — %s", result.Status, result.Output)
+		t.Errorf("Expected success for recursive delete, got: %s â€” %s", result.Status, result.Output)
 	}
 	if !strings.Contains(result.Output, "3 keys removed") {
 		t.Errorf("Expected 3 keys removed, got: %s", result.Output)
@@ -203,7 +203,7 @@ func TestRegDeleteKeyRecursive(t *testing.T) {
 	}
 
 	// Cleanup
-	registry.DeleteKey(registry.CURRENT_USER, `Software\FawkesTest`)
+	registry.DeleteKey(registry.CURRENT_USER, `Software\KillaTest`)
 }
 
 func TestRegDeleteNonexistentValue(t *testing.T) {

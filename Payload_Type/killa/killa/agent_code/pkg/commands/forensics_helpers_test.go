@@ -61,7 +61,7 @@ func TestDecodeUTF16Simple(t *testing.T) {
 }
 
 func TestDecodeUTF16WithNull(t *testing.T) {
-	// "AB\0CD" — should stop at null
+	// "AB\0CD" â€” should stop at null
 	data := []byte{0x41, 0x00, 0x42, 0x00, 0x00, 0x00, 0x43, 0x00, 0x44, 0x00}
 	result := decodeUTF16(data)
 	if result != "AB" {
@@ -84,7 +84,7 @@ func TestDecodeUTF16SingleByte(t *testing.T) {
 }
 
 func TestDecodeUTF16NullTerminated(t *testing.T) {
-	// "Hi\0\0\0" — padded with nulls (common in fixed-width fields)
+	// "Hi\0\0\0" â€” padded with nulls (common in fixed-width fields)
 	data := []byte{0x48, 0x00, 0x69, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00}
 	result := decodeUTF16(data)
 	if result != "Hi" {
@@ -142,7 +142,7 @@ func TestUsnReasonStringMultipleFlags(t *testing.T) {
 }
 
 func TestUsnReasonStringUnknown(t *testing.T) {
-	// Named data flags only — not matched by any named category
+	// Named data flags only â€” not matched by any named category
 	result := usnReasonString(usnReasonNamedDataOverwrite)
 	if result != "0x00000010" {
 		t.Errorf("expected hex fallback, got '%s'", result)
@@ -552,7 +552,7 @@ func TestRebuildShimcacheWin10KeepAll(t *testing.T) {
 		t.Errorf("expected len %d, got %d", len(original), len(rebuilt))
 	}
 
-	// Parse rebuilt data — should produce same entries
+	// Parse rebuilt data â€” should produce same entries
 	reEntries, err := parseShimcacheWin10(rebuilt)
 	if err != nil {
 		t.Fatalf("parse rebuilt error: %v", err)
@@ -608,7 +608,7 @@ func TestRebuildShimcacheWin10Empty(t *testing.T) {
 		t.Errorf("expected header-only (52 bytes), got %d", len(rebuilt))
 	}
 
-	// Parse rebuilt — should have 0 entries
+	// Parse rebuilt â€” should have 0 entries
 	entries, err := parseShimcacheWin10(rebuilt)
 	if err != nil {
 		t.Fatalf("parse rebuilt error: %v", err)
@@ -648,7 +648,7 @@ func TestShimcacheWin10SigValue(t *testing.T) {
 // --- Roundtrip tests ---
 
 func TestShimcacheWin10Roundtrip(t *testing.T) {
-	// Build → parse → verify for various path types
+	// Build â†’ parse â†’ verify for various path types
 	paths := []string{
 		`C:\Windows\System32\cmd.exe`,
 		`C:\Program Files (x86)\App\app.exe`,
@@ -895,7 +895,7 @@ func TestParsePrefetchDataMultipleRunTimes(t *testing.T) {
 		133793856000000000, // ~2024-12-23
 		133786080000000000, // ~2024-12-14
 	}
-	data := buildPrefetchSCCAMultiRun(30, "FAWKES.EXE", 0xF00D, 3, runTimes)
+	data := buildPrefetchSCCAMultiRun(30, "KILLA.EXE", 0xF00D, 3, runTimes)
 
 	entry, err := parsePrefetchData(data)
 	if err != nil {
@@ -912,7 +912,7 @@ func TestParsePrefetchDataMultipleRunTimes(t *testing.T) {
 func TestParsePrefetchDataMultiRunSkipsZero(t *testing.T) {
 	runTimes := []uint64{
 		133801632000000000, // 2025-01-01
-		0,                  // Zero — should be filtered
+		0,                  // Zero â€” should be filtered
 		133786080000000000, // ~2024-12-14
 	}
 	data := buildPrefetchSCCAMultiRun(26, "TEST.EXE", 0x0, 2, runTimes)
@@ -966,7 +966,7 @@ func TestParsePrefetchDataUnknownVersion(t *testing.T) {
 }
 
 func TestParsePrefetchDataMinimumSize(t *testing.T) {
-	// Exactly 84 bytes — version XP won't have run count (needs >= 100)
+	// Exactly 84 bytes â€” version XP won't have run count (needs >= 100)
 	data := make([]byte, 84)
 	binary.LittleEndian.PutUint32(data[0:4], 17)
 	binary.LittleEndian.PutUint32(data[4:8], prefetchSCCASig)

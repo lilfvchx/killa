@@ -76,7 +76,7 @@ func TestRegistryTypeName(t *testing.T) {
 }
 
 func TestReadValueSZ(t *testing.T) {
-	testPath := `Software\FawkesTest\ReadValueTest`
+	testPath := `Software\KillaTest\ReadValueTest`
 	key, _, err := registry.CreateKey(registry.CURRENT_USER, testPath, registry.SET_VALUE|registry.READ|registry.QUERY_VALUE)
 	if err != nil {
 		t.Fatalf("Failed to create test key: %v", err)
@@ -84,7 +84,7 @@ func TestReadValueSZ(t *testing.T) {
 	defer func() {
 		key.Close()
 		registry.DeleteKey(registry.CURRENT_USER, testPath)
-		registry.DeleteKey(registry.CURRENT_USER, `Software\FawkesTest`)
+		registry.DeleteKey(registry.CURRENT_USER, `Software\KillaTest`)
 	}()
 
 	// Write a test string value
@@ -105,7 +105,7 @@ func TestReadValueSZ(t *testing.T) {
 }
 
 func TestReadValueDWORD(t *testing.T) {
-	testPath := `Software\FawkesTest\ReadValueDWORD`
+	testPath := `Software\KillaTest\ReadValueDWORD`
 	key, _, err := registry.CreateKey(registry.CURRENT_USER, testPath, registry.SET_VALUE|registry.READ|registry.QUERY_VALUE)
 	if err != nil {
 		t.Fatalf("Failed to create test key: %v", err)
@@ -113,7 +113,7 @@ func TestReadValueDWORD(t *testing.T) {
 	defer func() {
 		key.Close()
 		registry.DeleteKey(registry.CURRENT_USER, testPath)
-		registry.DeleteKey(registry.CURRENT_USER, `Software\FawkesTest`)
+		registry.DeleteKey(registry.CURRENT_USER, `Software\KillaTest`)
 	}()
 
 	if err := key.SetDWordValue("TestDW", 42); err != nil {
@@ -133,7 +133,7 @@ func TestReadValueDWORD(t *testing.T) {
 }
 
 func TestReadValueBinary(t *testing.T) {
-	testPath := `Software\FawkesTest\ReadValueBinary`
+	testPath := `Software\KillaTest\ReadValueBinary`
 	key, _, err := registry.CreateKey(registry.CURRENT_USER, testPath, registry.SET_VALUE|registry.READ|registry.QUERY_VALUE)
 	if err != nil {
 		t.Fatalf("Failed to create test key: %v", err)
@@ -141,7 +141,7 @@ func TestReadValueBinary(t *testing.T) {
 	defer func() {
 		key.Close()
 		registry.DeleteKey(registry.CURRENT_USER, testPath)
-		registry.DeleteKey(registry.CURRENT_USER, `Software\FawkesTest`)
+		registry.DeleteKey(registry.CURRENT_USER, `Software\KillaTest`)
 	}()
 
 	binData := []byte{0xDE, 0xAD, 0xBE, 0xEF}
@@ -162,7 +162,7 @@ func TestReadValueBinary(t *testing.T) {
 }
 
 func TestParseRegWriteValueSZ(t *testing.T) {
-	testPath := `Software\FawkesTest\WriteHelperTest`
+	testPath := `Software\KillaTest\WriteHelperTest`
 	key, _, err := registry.CreateKey(registry.CURRENT_USER, testPath, registry.SET_VALUE|registry.READ|registry.QUERY_VALUE)
 	if err != nil {
 		t.Fatalf("Failed to create test key: %v", err)
@@ -170,7 +170,7 @@ func TestParseRegWriteValueSZ(t *testing.T) {
 	defer func() {
 		key.Close()
 		registry.DeleteKey(registry.CURRENT_USER, testPath)
-		registry.DeleteKey(registry.CURRENT_USER, `Software\FawkesTest`)
+		registry.DeleteKey(registry.CURRENT_USER, `Software\KillaTest`)
 	}()
 
 	err = parseRegWriteValue(key, "TestSZ", "hello", "REG_SZ")
@@ -188,7 +188,7 @@ func TestParseRegWriteValueSZ(t *testing.T) {
 }
 
 func TestParseRegWriteValueDWORD(t *testing.T) {
-	testPath := `Software\FawkesTest\WriteHelperDWORD`
+	testPath := `Software\KillaTest\WriteHelperDWORD`
 	key, _, err := registry.CreateKey(registry.CURRENT_USER, testPath, registry.SET_VALUE|registry.READ|registry.QUERY_VALUE)
 	if err != nil {
 		t.Fatalf("Failed to create test key: %v", err)
@@ -196,7 +196,7 @@ func TestParseRegWriteValueDWORD(t *testing.T) {
 	defer func() {
 		key.Close()
 		registry.DeleteKey(registry.CURRENT_USER, testPath)
-		registry.DeleteKey(registry.CURRENT_USER, `Software\FawkesTest`)
+		registry.DeleteKey(registry.CURRENT_USER, `Software\KillaTest`)
 	}()
 
 	// Decimal
@@ -221,7 +221,7 @@ func TestParseRegWriteValueDWORD(t *testing.T) {
 }
 
 func TestParseRegWriteValueInvalidType(t *testing.T) {
-	testPath := `Software\FawkesTest\WriteHelperBadType`
+	testPath := `Software\KillaTest\WriteHelperBadType`
 	key, _, err := registry.CreateKey(registry.CURRENT_USER, testPath, registry.SET_VALUE)
 	if err != nil {
 		t.Fatalf("Failed to create test key: %v", err)
@@ -229,7 +229,7 @@ func TestParseRegWriteValueInvalidType(t *testing.T) {
 	defer func() {
 		key.Close()
 		registry.DeleteKey(registry.CURRENT_USER, testPath)
-		registry.DeleteKey(registry.CURRENT_USER, `Software\FawkesTest`)
+		registry.DeleteKey(registry.CURRENT_USER, `Software\KillaTest`)
 	}()
 
 	err = parseRegWriteValue(key, "Test", "data", "REG_INVALID")
@@ -242,7 +242,7 @@ func TestParseRegWriteValueInvalidType(t *testing.T) {
 }
 
 func TestParseRegWriteValueInvalidDWORD(t *testing.T) {
-	testPath := `Software\FawkesTest\WriteHelperBadDW`
+	testPath := `Software\KillaTest\WriteHelperBadDW`
 	key, _, err := registry.CreateKey(registry.CURRENT_USER, testPath, registry.SET_VALUE)
 	if err != nil {
 		t.Fatalf("Failed to create test key: %v", err)
@@ -250,7 +250,7 @@ func TestParseRegWriteValueInvalidDWORD(t *testing.T) {
 	defer func() {
 		key.Close()
 		registry.DeleteKey(registry.CURRENT_USER, testPath)
-		registry.DeleteKey(registry.CURRENT_USER, `Software\FawkesTest`)
+		registry.DeleteKey(registry.CURRENT_USER, `Software\KillaTest`)
 	}()
 
 	err = parseRegWriteValue(key, "Test", "not_a_number", "REG_DWORD")
@@ -260,7 +260,7 @@ func TestParseRegWriteValueInvalidDWORD(t *testing.T) {
 }
 
 func TestEnumerateValues(t *testing.T) {
-	testPath := `Software\FawkesTest\EnumerateTest`
+	testPath := `Software\KillaTest\EnumerateTest`
 	key, _, err := registry.CreateKey(registry.CURRENT_USER, testPath, registry.SET_VALUE|registry.READ|registry.QUERY_VALUE)
 	if err != nil {
 		t.Fatalf("Failed to create test key: %v", err)
@@ -268,7 +268,7 @@ func TestEnumerateValues(t *testing.T) {
 	defer func() {
 		key.Close()
 		registry.DeleteKey(registry.CURRENT_USER, testPath)
-		registry.DeleteKey(registry.CURRENT_USER, `Software\FawkesTest`)
+		registry.DeleteKey(registry.CURRENT_USER, `Software\KillaTest`)
 	}()
 
 	key.SetStringValue("Name1", "value1")
@@ -314,7 +314,7 @@ func TestRegCommandInvalidAction(t *testing.T) {
 
 func TestRegCommandReadAction(t *testing.T) {
 	// Create a test key
-	testPath := `Software\FawkesTest\RegCmdRead`
+	testPath := `Software\KillaTest\RegCmdRead`
 	key, _, err := registry.CreateKey(registry.CURRENT_USER, testPath, registry.SET_VALUE)
 	if err != nil {
 		t.Fatalf("Failed to create test key: %v", err)
@@ -323,7 +323,7 @@ func TestRegCommandReadAction(t *testing.T) {
 	key.Close()
 	defer func() {
 		registry.DeleteKey(registry.CURRENT_USER, testPath)
-		registry.DeleteKey(registry.CURRENT_USER, `Software\FawkesTest`)
+		registry.DeleteKey(registry.CURRENT_USER, `Software\KillaTest`)
 	}()
 
 	cmd := &RegCommand{}
@@ -336,7 +336,7 @@ func TestRegCommandReadAction(t *testing.T) {
 	task := structs.Task{Params: string(params)}
 	result := cmd.Execute(task)
 	if result.Status != "success" {
-		t.Errorf("Expected completed, got: %s — %s", result.Status, result.Output)
+		t.Errorf("Expected completed, got: %s â€” %s", result.Status, result.Output)
 	}
 	if !strings.Contains(result.Output, "regcmd") {
 		t.Errorf("Expected 'regcmd' in output, got: %s", result.Output)
@@ -344,10 +344,10 @@ func TestRegCommandReadAction(t *testing.T) {
 }
 
 func TestRegCommandWriteAction(t *testing.T) {
-	testPath := `Software\FawkesTest\RegCmdWrite`
+	testPath := `Software\KillaTest\RegCmdWrite`
 	defer func() {
 		registry.DeleteKey(registry.CURRENT_USER, testPath)
-		registry.DeleteKey(registry.CURRENT_USER, `Software\FawkesTest`)
+		registry.DeleteKey(registry.CURRENT_USER, `Software\KillaTest`)
 	}()
 
 	cmd := &RegCommand{}
@@ -362,7 +362,7 @@ func TestRegCommandWriteAction(t *testing.T) {
 	task := structs.Task{Params: string(params)}
 	result := cmd.Execute(task)
 	if result.Status != "success" {
-		t.Errorf("Expected completed, got: %s — %s", result.Status, result.Output)
+		t.Errorf("Expected completed, got: %s â€” %s", result.Status, result.Output)
 	}
 	if !strings.Contains(result.Output, "Successfully wrote") {
 		t.Errorf("Expected success confirmation, got: %s", result.Output)
@@ -384,7 +384,7 @@ func TestRegCommandWriteAction(t *testing.T) {
 }
 
 func TestRegCommandDeleteAction(t *testing.T) {
-	testPath := `Software\FawkesTest\RegCmdDelete`
+	testPath := `Software\KillaTest\RegCmdDelete`
 	key, _, err := registry.CreateKey(registry.CURRENT_USER, testPath, registry.SET_VALUE)
 	if err != nil {
 		t.Fatalf("Failed to create test key: %v", err)
@@ -393,7 +393,7 @@ func TestRegCommandDeleteAction(t *testing.T) {
 	key.Close()
 	defer func() {
 		registry.DeleteKey(registry.CURRENT_USER, testPath)
-		registry.DeleteKey(registry.CURRENT_USER, `Software\FawkesTest`)
+		registry.DeleteKey(registry.CURRENT_USER, `Software\KillaTest`)
 	}()
 
 	cmd := &RegCommand{}
@@ -406,12 +406,12 @@ func TestRegCommandDeleteAction(t *testing.T) {
 	task := structs.Task{Params: string(params)}
 	result := cmd.Execute(task)
 	if result.Status != "success" {
-		t.Errorf("Expected success, got: %s — %s", result.Status, result.Output)
+		t.Errorf("Expected success, got: %s â€” %s", result.Status, result.Output)
 	}
 }
 
 func TestRegCommandSearchAction(t *testing.T) {
-	testPath := `Software\FawkesTest\RegCmdSearch`
+	testPath := `Software\KillaTest\RegCmdSearch`
 	key, _, err := registry.CreateKey(registry.CURRENT_USER, testPath, registry.SET_VALUE)
 	if err != nil {
 		t.Fatalf("Failed to create test key: %v", err)
@@ -420,14 +420,14 @@ func TestRegCommandSearchAction(t *testing.T) {
 	key.Close()
 	defer func() {
 		registry.DeleteKey(registry.CURRENT_USER, testPath)
-		registry.DeleteKey(registry.CURRENT_USER, `Software\FawkesTest`)
+		registry.DeleteKey(registry.CURRENT_USER, `Software\KillaTest`)
 	}()
 
 	cmd := &RegCommand{}
 	params, _ := json.Marshal(map[string]interface{}{
 		"action":      "search",
 		"hive":        "HKCU",
-		"path":        `Software\FawkesTest`,
+		"path":        `Software\KillaTest`,
 		"pattern":     "findme_unique_12345",
 		"max_depth":   3,
 		"max_results": 10,
@@ -435,7 +435,7 @@ func TestRegCommandSearchAction(t *testing.T) {
 	task := structs.Task{Params: string(params)}
 	result := cmd.Execute(task)
 	if result.Status != "success" {
-		t.Errorf("Expected success, got: %s — %s", result.Status, result.Output)
+		t.Errorf("Expected success, got: %s â€” %s", result.Status, result.Output)
 	}
 	if !strings.Contains(result.Output, "findme_unique_12345") {
 		t.Errorf("Expected search result with findme_unique_12345, got: %s", result.Output)

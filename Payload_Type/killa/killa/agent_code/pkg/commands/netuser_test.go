@@ -184,13 +184,13 @@ func TestNetUserInfoNonexistent(t *testing.T) {
 // Requires admin privileges to run.
 func TestNetUserLifecycle(t *testing.T) {
 	cmd := &NetUserCommand{}
-	testUser := "FawkesTestUser"
-	testPass := "T3st!Pass#Fawkes99"
+	testUser := "KillaTestUser"
+	testPass := "T3st!Pass#Killa99"
 
 	// Create
 	params, _ := json.Marshal(map[string]string{
 		"action": "add", "username": testUser, "password": testPass,
-		"comment": "Fawkes test account",
+		"comment": "Killa test account",
 	})
 	result := cmd.Execute(structs.Task{Params: string(params)})
 	if result.Status != "success" {
@@ -204,20 +204,20 @@ func TestNetUserLifecycle(t *testing.T) {
 	params, _ = json.Marshal(map[string]string{"action": "info", "username": testUser})
 	result = cmd.Execute(structs.Task{Params: string(params)})
 	if result.Status != "success" {
-		t.Errorf("Expected success for info, got: %s — %s", result.Status, result.Output)
+		t.Errorf("Expected success for info, got: %s â€” %s", result.Status, result.Output)
 	}
 	if !strings.Contains(result.Output, testUser) {
 		t.Errorf("Expected username in output, got: %s", result.Output)
 	}
-	if !strings.Contains(result.Output, "Fawkes test account") {
+	if !strings.Contains(result.Output, "Killa test account") {
 		t.Errorf("Expected comment in output, got: %s", result.Output)
 	}
 
 	// Password change
-	params, _ = json.Marshal(map[string]string{"action": "password", "username": testUser, "password": "N3w!Pass#Fawkes88"})
+	params, _ = json.Marshal(map[string]string{"action": "password", "username": testUser, "password": "N3w!Pass#Killa88"})
 	result = cmd.Execute(structs.Task{Params: string(params)})
 	if result.Status != "success" {
-		t.Errorf("Expected success for password change, got: %s — %s", result.Status, result.Output)
+		t.Errorf("Expected success for password change, got: %s â€” %s", result.Status, result.Output)
 	}
 
 	// Group add
@@ -235,7 +235,7 @@ func TestNetUserLifecycle(t *testing.T) {
 	params, _ = json.Marshal(map[string]string{"action": "delete", "username": testUser})
 	result = cmd.Execute(structs.Task{Params: string(params)})
 	if result.Status != "success" {
-		t.Errorf("Expected success for delete, got: %s — %s", result.Status, result.Output)
+		t.Errorf("Expected success for delete, got: %s â€” %s", result.Status, result.Output)
 	}
 	if !strings.Contains(result.Output, "Successfully deleted") {
 		t.Errorf("Expected deletion message, got: %s", result.Output)
