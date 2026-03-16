@@ -10,7 +10,7 @@ var slackC2Definition = c2structs.C2Profile{
 	Description:         "Slack channel/DM transport for tasking and responses.",
 	IsP2p:               false,
 	IsServerRouted:      true,
-	ServerBinaryPath:    "./server",
+	ServerBinaryPath:    "./internal_server",
 	ConfigCheckFunction: configCheck,
 }
 

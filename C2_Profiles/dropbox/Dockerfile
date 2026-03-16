@@ -11,7 +11,7 @@ FROM alpine
 RUN apk add make
 
 COPY --from=builder /main /main
-COPY --from=builder /server /Mythic/server
+COPY --from=builder /internal_server /Mythic/internal_server
 
 WORKDIR /Mythic/
 
