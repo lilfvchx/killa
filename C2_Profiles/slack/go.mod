@@ -4,11 +4,15 @@ go 1.22.0
 
 toolchain go1.22.2
 
-require github.com/MythicMeta/MythicContainer v1.4.8
+require (
+	github.com/MythicMeta/MythicContainer v1.4.8
+	github.com/slack-go/slack v0.14.0
+)
 
 require (
 	github.com/fsnotify/fsnotify v1.7.0 // indirect
 	github.com/google/uuid v1.6.0 // indirect
+	github.com/gorilla/websocket v1.4.2 // indirect
 	github.com/hashicorp/hcl v1.0.0 // indirect
 	github.com/magiconair/properties v1.8.7 // indirect
 	github.com/mattn/go-colorable v0.1.13 // indirect

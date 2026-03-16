@@ -5,11 +5,13 @@ import (
 )
 
 var slackC2Definition = c2structs.C2Profile{
-	Name:           "slack",
-	Author:         "@galoryber",
-	Description:    "Slack channel/DM transport for tasking and responses.",
-	IsP2p:          false,
-	IsServerRouted: true,
+	Name:                "slack",
+	Author:              "@galoryber",
+	Description:         "Slack channel/DM transport for tasking and responses.",
+	IsP2p:               false,
+	IsServerRouted:      true,
+	ServerBinaryPath:    "./server",
+	ConfigCheckFunction: configCheck,
 }
 
 var slackC2Parameters = []c2structs.C2Parameter{

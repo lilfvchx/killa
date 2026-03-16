@@ -5,11 +5,13 @@ import (
 )
 
 var dropboxC2Definition = c2structs.C2Profile{
-	Name:           "dropbox",
-	Author:         "@galoryber",
-	Description:    "Dropbox file-based transport for tasking and responses.",
-	IsP2p:          false,
-	IsServerRouted: true,
+	Name:                "dropbox",
+	Author:              "@galoryber",
+	Description:         "Dropbox file-based transport for tasking and responses.",
+	IsP2p:               false,
+	IsServerRouted:      true,
+	ServerBinaryPath:    "./server",
+	ConfigCheckFunction: configCheck,
 }
 
 var dropboxC2Parameters = []c2structs.C2Parameter{
