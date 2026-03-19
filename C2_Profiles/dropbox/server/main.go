@@ -692,7 +692,7 @@ func (s *dropboxService) movePath(from, to string) error {
 	req.Header.Set("Content-Type", "application/json")
 	resp, err := s.client.Do(req)
 	if err != nil {
-		return err
+		return fmt.Errorf("dropbox move request failed: %w", err)
 	}
 	defer resp.Body.Close()
 	if resp.StatusCode != http.StatusOK {
