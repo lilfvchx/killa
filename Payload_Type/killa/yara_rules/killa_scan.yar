@@ -4,7 +4,7 @@
  * Notes:
  * - These rules are intended to help operators understand detection exposure.
  * - They are not a bypass mechanism.
- * - Rule set refreshed for the killa rebrand and Slack/Dropbox-capable transport stack.
+ * - Rule set refreshed for the killa rebrand and Discord/Dropbox-capable transport stack.
  */
 
 rule Killa_Go_Binary_Baseline
@@ -32,7 +32,7 @@ rule Killa_Runtime_Identity_Indicators
         $killa_name = "PayloadType: \"killa\"" ascii
         $killa_c2_http = "C2Profile: \"http\"" ascii
         $killa_c2_tcp = "C2Profile: \"tcp\"" ascii
-        $killa_c2_slack = "C2Profile: \"slack\"" ascii
+        $killa_c2_discord = "C2Profile: \"discord\"" ascii
         $killa_c2_dropbox = "C2Profile: \"dropbox\"" ascii
     condition:
         $killa_name and 1 of ($killa_c2_*)
@@ -53,20 +53,20 @@ rule Killa_Mythic_Container_Indicators
         2 of them
 }
 
-rule Killa_Slack_Dropbox_Transport_Indicators
+rule Killa_Discord_Dropbox_Transport_Indicators
 {
     meta:
-        description = "Cloud transport stack indicators for Slack/Dropbox-enabled builds"
+        description = "Cloud transport stack indicators for Discord/Dropbox-enabled builds"
         severity = "medium"
         category = "transport"
     strings:
-        $slack_pkg = "github.com/slack-go/slack" ascii
-        $slack_c2 = "slack_bot_token" ascii
+        $discord_pkg = "github.com/discord-go/discord" ascii
+        $discord_c2 = "discord_bot_token" ascii
         $dropbox_api = "https://api.dropboxapi.com/2" ascii
         $dropbox_content = "https://content.dropboxapi.com/2" ascii
         $dropbox_c2 = "dropbox_token" ascii
     condition:
-        ($slack_pkg and $slack_c2) or (($dropbox_api or $dropbox_content) and $dropbox_c2)
+        ($discord_pkg and $discord_c2) or (($dropbox_api or $dropbox_content) and $dropbox_c2)
 }
 
 rule Killa_Windows_Injection_Surface
@@ -126,7 +126,7 @@ rule Killa_Plaintext_Config_Exposure
     strings:
         $cfg1 = "callback_host" ascii
         $cfg2 = "callback_port" ascii
-        $cfg3 = "slack_channel_id" ascii
+        $cfg3 = "discord_channel_id" ascii
         $cfg4 = "dropbox_task_folder" ascii
         $cfg5 = "Mozilla/5.0" ascii
     condition:

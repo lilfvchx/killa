@@ -3,7 +3,7 @@ package profiles
 import (
 	"killa/pkg/dropbox"
 	"killa/pkg/http"
-	"killa/pkg/slack"
+	"killa/pkg/discord"
 	"killa/pkg/structs"
 	"killa/pkg/tcp"
 )
@@ -26,9 +26,9 @@ func NewTCPProfile(tcpProfile *tcp.TCPProfile) Profile {
 	return tcpProfile
 }
 
-// NewSlackProfile creates a new profile based on Slack transport.
-func NewSlackProfile(slackProfile *slack.SlackProfile) Profile {
-	return slackProfile
+// NewDiscordProfile creates a new profile based on Discord transport.
+func NewDiscordProfile(discordProfile *discord.DiscordProfile) Profile {
+	return discordProfile
 }
 
 // NewDropboxProfile creates a new profile based on Dropbox transport.

