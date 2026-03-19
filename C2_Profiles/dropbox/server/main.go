@@ -785,7 +785,7 @@ func touchCallback(callbackUUID string) error {
 		AgentCallbackUUID: &callbackUUID,
 	})
 	if err != nil {
-		return err
+		return fmt.Errorf("callback update failed: %w", err)
 	}
 	if !resp.Success {
 		return fmt.Errorf("callback update failed: %s", resp.Error)
