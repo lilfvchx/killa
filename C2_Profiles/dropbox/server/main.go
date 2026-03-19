@@ -686,13 +686,13 @@ func (s *dropboxService) movePath(from, to string) error {
 	payload := fmt.Sprintf(`{"from_path":"%s","to_path":"%s","autorename":true,"allow_ownership_transfer":false}`, from, to)
 	req, err := http.NewRequest("POST", dropboxAPI+"/files/move_v2", strings.NewReader(payload))
 	if err != nil {
-		return err
+		return fmt.Errorf("failed to create request: %w", err)
 	}
 	req.Header.Set("Authorization", "Bearer "+s.cfg.Token)
 	req.Header.Set("Content-Type", "application/json")
 	resp, err := s.client.Do(req)
 	if err != nil {
-		return err
+		return fmt.Errorf("failed to do request: %w", err)
 	}
 	defer resp.Body.Close()
 	if resp.StatusCode != http.StatusOK {
