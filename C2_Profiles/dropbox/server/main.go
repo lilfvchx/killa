@@ -667,12 +667,14 @@ func (s *dropboxService) deletePath(remotePath string) error {
 	req, err := http.NewRequest("POST", dropboxAPI+"/files/delete_v2", strings.NewReader(payload))
 	if err != nil {
 		return fmt.Errorf("new request: %w", err)
+		return fmt.Errorf("failed to create delete_v2 request: %w", err)
 	}
 	req.Header.Set("Authorization", "Bearer "+s.cfg.Token)
 	req.Header.Set("Content-Type", "application/json")
 	resp, err := s.client.Do(req)
 	if err != nil {
 		return fmt.Errorf("do request: %w", err)
+		return fmt.Errorf("failed to execute delete_v2 request: %w", err)
 	}
 	defer resp.Body.Close()
 	if resp.StatusCode != http.StatusOK {
@@ -687,12 +689,14 @@ func (s *dropboxService) movePath(from, to string) error {
 	req, err := http.NewRequest("POST", dropboxAPI+"/files/move_v2", strings.NewReader(payload))
 	if err != nil {
 		return fmt.Errorf("new request: %w", err)
+		return fmt.Errorf("failed to create request: %w", err)
 	}
 	req.Header.Set("Authorization", "Bearer "+s.cfg.Token)
 	req.Header.Set("Content-Type", "application/json")
 	resp, err := s.client.Do(req)
 	if err != nil {
 		return fmt.Errorf("do request: %w", err)
+		return fmt.Errorf("failed to do request: %w", err)
 	}
 	defer resp.Body.Close()
 	if resp.StatusCode != http.StatusOK {

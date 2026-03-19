@@ -928,7 +928,6 @@ func build(payloadBuildMsg agentstructs.PayloadBuildMessage) agentstructs.Payloa
 		StepStdout:  configuringOutput,
 	})
 	cmd := exec.Command("/bin/bash")
-	fmt.Println("build command : " + command)
 	cmd.Stdin = strings.NewReader(command)
 	cmd.Dir = "./killa/agent_code/"
 	var stdout bytes.Buffer
