@@ -224,10 +224,10 @@ func newDropboxService(cfg serverConfig, state *serverState) *dropboxService {
 
 func (s *dropboxService) bootstrap() error {
 	if _, err := s.listFolder(s.cfg.TaskFolder); err != nil {
-		return err
+		return fmt.Errorf("list task folder: %w", err)
 	}
 	if _, err := s.listFolder(s.cfg.ResultFolder); err != nil {
-		return err
+		return fmt.Errorf("list result folder: %w", err)
 	}
 	return nil
 }
@@ -251,7 +251,7 @@ func (s *dropboxService) run(ctx context.Context) error {
 func (s *dropboxService) pollOnce() error {
 	entries, err := s.listFolder(s.cfg.ResultFolder)
 	if err != nil {
-		return err
+		return fmt.Errorf("list result folder: %w", err)
 	}
 	sort.Slice(entries, func(i, j int) bool {
 		return entries[i].Name < entries[j].Name
@@ -296,14 +296,14 @@ func (s *dropboxService) pollOnce() error {
 func (s *dropboxService) handleEnvelope(encoded string) (string, error) {
 	env, decoded, err := decryptEnvelope("dropbox", encoded)
 	if err != nil {
-		return "", err
+		return "", fmt.Errorf("decrypt envelope: %w", err)
 	}
 
 	var header struct {
 		Action string `json:"action"`
 	}
 	if err := json.Unmarshal(decoded, &header); err != nil {
-		return "", err
+		return "", fmt.Errorf("unmarshal envelope header: %w", err)
 	}
 
 	var responseBody []byte
@@ -318,7 +318,7 @@ func (s *dropboxService) handleEnvelope(encoded string) (string, error) {
 		return "", fmt.Errorf("unsupported dropbox action %q", header.Action)
 	}
 	if err != nil {
-		return "", err
+		return "", fmt.Errorf("handle action %q: %w", header.Action, err)
 	}
 	return encryptEnvelope(env.UUID, "dropbox", responseBody)
 }
@@ -326,7 +326,7 @@ func (s *dropboxService) handleEnvelope(encoded string) (string, error) {
 func (s *dropboxService) handleCheckin(raw []byte) ([]byte, error) {
 	req := checkinMessage{}
 	if err := json.Unmarshal(raw, &req); err != nil {
-		return nil, err
+		return nil, fmt.Errorf("unmarshal checkin: %w", err)
 	}
 
 	resp, err := mythicrpc.SendMythicRPCCallbackCreate(mythicrpc.MythicRPCCallbackCreateMessage{
@@ -344,7 +344,7 @@ func (s *dropboxService) handleCheckin(raw []byte) ([]byte, error) {
 		ProcessName:    req.ProcessName,
 	})
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("send callback create: %w", err)
 	}
 	if !resp.Success {
 		return nil, fmt.Errorf("callback create failed: %s", resp.Error)
@@ -360,7 +360,7 @@ func (s *dropboxService) handleCheckin(raw []byte) ([]byte, error) {
 func (s *dropboxService) handleGetTasking(callbackUUID string, raw []byte) ([]byte, error) {
 	req := taskingMessage{}
 	if err := json.Unmarshal(raw, &req); err != nil {
-		return nil, err
+		return nil, fmt.Errorf("unmarshal tasking: %w", err)
 	}
 
 	callback, err := lookupCallback(callbackUUID)
@@ -376,7 +376,7 @@ func (s *dropboxService) handleGetTasking(callbackUUID string, raw []byte) ([]by
 		SearchCompleted:  &searchCompleted,
 	})
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("send task search: %w", err)
 	}
 	if !searchResp.Success {
 		return nil, fmt.Errorf("task search failed: %s", searchResp.Error)
@@ -401,12 +401,12 @@ func (s *dropboxService) handleGetTasking(callbackUUID string, raw []byte) ([]by
 func (s *dropboxService) handlePostResponse(callbackUUID string, raw []byte) ([]byte, error) {
 	req := postResponseMessage{}
 	if err := json.Unmarshal(raw, &req); err != nil {
-		return nil, err
+		return nil, fmt.Errorf("unmarshal post response: %w", err)
 	}
 
 	callback, err := lookupCallback(callbackUUID)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("lookup callback: %w", err)
 	}
 	_ = touchCallback(callbackUUID)
 
@@ -469,14 +469,14 @@ func (s *dropboxService) handlePostResponse(callbackUUID string, raw []byte) ([]
 		if resp.Download != nil {
 			ack, err := s.handleDownload(*task, callback, *resp.Download)
 			if err != nil {
-				return nil, err
+				return nil, fmt.Errorf("handle download: %w", err)
 			}
 			acks = append(acks, ack)
 		}
 		if resp.Upload != nil {
 			ack, err := s.handleUpload(*resp.Upload)
 			if err != nil {
-				return nil, err
+				return nil, fmt.Errorf("handle upload: %w", err)
 			}
 			acks = append(acks, ack)
 		}
@@ -526,7 +526,7 @@ func (s *dropboxService) handleDownload(task mythicrpc.PTTaskMessageTaskData, ca
 			TargetHostName:      callback.Host,
 		})
 		if err != nil {
-			return nil, err
+			return nil, fmt.Errorf("send file create: %w", err)
 		}
 		if !resp.Success {
 			return nil, fmt.Errorf("file create failed: %s", resp.Error)
@@ -536,14 +536,14 @@ func (s *dropboxService) handleDownload(task mythicrpc.PTTaskMessageTaskData, ca
 
 	chunk, err := base64.StdEncoding.DecodeString(msg.ChunkData)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("decode chunk data: %w", err)
 	}
 	resp, err := mythicrpc.SendMythicRPCFileUpdate(mythicrpc.MythicRPCFileUpdateMessage{
 		AgentFileID:    msg.FileID,
 		AppendContents: &chunk,
 	})
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("send file update: %w", err)
 	}
 	if !resp.Success {
 		return nil, fmt.Errorf("file update failed: %s", resp.Error)
@@ -558,7 +558,7 @@ func (s *dropboxService) handleUpload(msg fileUploadMessage) (map[string]any, er
 			AgentFileID: msg.FileID,
 		})
 		if err != nil {
-			return nil, err
+			return nil, fmt.Errorf("send file get content: %w", err)
 		}
 		if !resp.Success {
 			return nil, fmt.Errorf("file get content failed: %s", resp.Error)
@@ -598,14 +598,14 @@ func (s *dropboxService) handleUpload(msg fileUploadMessage) (map[string]any, er
 func (s *dropboxService) uploadText(remotePath, content string) error {
 	req, err := http.NewRequest("POST", dropboxContent+"/files/upload", strings.NewReader(content))
 	if err != nil {
-		return err
+		return fmt.Errorf("new request: %w", err)
 	}
 	req.Header.Set("Authorization", "Bearer "+s.cfg.Token)
 	req.Header.Set("Content-Type", "application/octet-stream")
 	req.Header.Set("Dropbox-API-Arg", fmt.Sprintf(`{"path":"%s","mode":"overwrite","autorename":false,"mute":true}`, remotePath))
 	resp, err := s.client.Do(req)
 	if err != nil {
-		return err
+		return fmt.Errorf("do request: %w", err)
 	}
 	defer resp.Body.Close()
 	if resp.StatusCode != http.StatusOK {
@@ -619,13 +619,13 @@ func (s *dropboxService) listFolder(folder string) ([]dropboxEntry, error) {
 	payload := fmt.Sprintf(`{"path":"%s"}`, folder)
 	req, err := http.NewRequest("POST", dropboxAPI+"/files/list_folder", strings.NewReader(payload))
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("new request: %w", err)
 	}
 	req.Header.Set("Authorization", "Bearer "+s.cfg.Token)
 	req.Header.Set("Content-Type", "application/json")
 	resp, err := s.client.Do(req)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("do request: %w", err)
 	}
 	defer resp.Body.Close()
 	if resp.StatusCode != http.StatusOK {
@@ -634,7 +634,7 @@ func (s *dropboxService) listFolder(folder string) ([]dropboxEntry, error) {
 	}
 	out := listFolderResp{}
 	if err := json.NewDecoder(resp.Body).Decode(&out); err != nil {
-		return nil, err
+		return nil, fmt.Errorf("decode response: %w", err)
 	}
 	return out.Entries, nil
 }
@@ -642,13 +642,13 @@ func (s *dropboxService) listFolder(folder string) ([]dropboxEntry, error) {
 func (s *dropboxService) downloadText(remotePath string) (string, error) {
 	req, err := http.NewRequest("POST", dropboxContent+"/files/download", nil)
 	if err != nil {
-		return "", err
+		return "", fmt.Errorf("new request: %w", err)
 	}
 	req.Header.Set("Authorization", "Bearer "+s.cfg.Token)
 	req.Header.Set("Dropbox-API-Arg", fmt.Sprintf(`{"path":"%s"}`, remotePath))
 	resp, err := s.client.Do(req)
 	if err != nil {
-		return "", err
+		return "", fmt.Errorf("do request: %w", err)
 	}
 	defer resp.Body.Close()
 	if resp.StatusCode != http.StatusOK {
@@ -657,7 +657,7 @@ func (s *dropboxService) downloadText(remotePath string) (string, error) {
 	}
 	content, err := io.ReadAll(resp.Body)
 	if err != nil {
-		return "", err
+		return "", fmt.Errorf("read response body: %w", err)
 	}
 	return string(content), nil
 }
@@ -666,12 +666,14 @@ func (s *dropboxService) deletePath(remotePath string) error {
 	payload := fmt.Sprintf(`{"path":"%s"}`, remotePath)
 	req, err := http.NewRequest("POST", dropboxAPI+"/files/delete_v2", strings.NewReader(payload))
 	if err != nil {
+		return fmt.Errorf("new request: %w", err)
 		return fmt.Errorf("failed to create delete_v2 request: %w", err)
 	}
 	req.Header.Set("Authorization", "Bearer "+s.cfg.Token)
 	req.Header.Set("Content-Type", "application/json")
 	resp, err := s.client.Do(req)
 	if err != nil {
+		return fmt.Errorf("do request: %w", err)
 		return fmt.Errorf("failed to execute delete_v2 request: %w", err)
 	}
 	defer resp.Body.Close()
@@ -686,12 +688,14 @@ func (s *dropboxService) movePath(from, to string) error {
 	payload := fmt.Sprintf(`{"from_path":"%s","to_path":"%s","autorename":true,"allow_ownership_transfer":false}`, from, to)
 	req, err := http.NewRequest("POST", dropboxAPI+"/files/move_v2", strings.NewReader(payload))
 	if err != nil {
+		return fmt.Errorf("new request: %w", err)
 		return fmt.Errorf("failed to create request: %w", err)
 	}
 	req.Header.Set("Authorization", "Bearer "+s.cfg.Token)
 	req.Header.Set("Content-Type", "application/json")
 	resp, err := s.client.Do(req)
 	if err != nil {
+		return fmt.Errorf("do request: %w", err)
 		return fmt.Errorf("failed to do request: %w", err)
 	}
 	defer resp.Body.Close()
@@ -705,7 +709,7 @@ func (s *dropboxService) movePath(from, to string) error {
 func decryptEnvelope(c2Profile, encoded string) (*envelope, []byte, error) {
 	raw, err := base64.StdEncoding.DecodeString(encoded)
 	if err != nil {
-		return nil, nil, err
+		return nil, nil, fmt.Errorf("decode envelope: %w", err)
 	}
 	if len(raw) < 36 {
 		return nil, nil, fmt.Errorf("encoded envelope too short")
@@ -719,7 +723,7 @@ func decryptEnvelope(c2Profile, encoded string) (*envelope, []byte, error) {
 		C2Profile:         c2Profile,
 	})
 	if err != nil {
-		return nil, nil, err
+		return nil, nil, fmt.Errorf("mythic rpc decrypt: %w", err)
 	}
 	if !resp.Success {
 		return nil, nil, fmt.Errorf("decrypt failed: %s", resp.Error)
@@ -736,7 +740,7 @@ func encryptEnvelope(uuid, c2Profile string, message []byte) (string, error) {
 		C2Profile:           c2Profile,
 	})
 	if err != nil {
-		return "", err
+		return "", fmt.Errorf("mythic rpc encrypt: %w", err)
 	}
 	if !resp.Success {
 		return "", fmt.Errorf("encrypt failed: %s", resp.Error)
@@ -751,7 +755,7 @@ func lookupCallback(callbackUUID string) (*mythicrpc.MythicRPCCallbackSearchMess
 		SearchCallbackUUID: &searchUUID,
 	})
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("send callback search: %w", err)
 	}
 	if !resp.Success {
 		return nil, fmt.Errorf("callback search failed: %s", resp.Error)
@@ -769,7 +773,7 @@ func lookupTask(callbackID int, agentTaskID string) (*mythicrpc.PTTaskMessageTas
 		SearchAgentTaskID: &searchAgentTaskID,
 	})
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("send task search: %w", err)
 	}
 	if !resp.Success {
 		return nil, fmt.Errorf("task search failed: %s", resp.Error)
@@ -785,7 +789,7 @@ func touchCallback(callbackUUID string) error {
 		AgentCallbackUUID: &callbackUUID,
 	})
 	if err != nil {
-		return err
+		return fmt.Errorf("send rpc callback update: %w", err)
 	}
 	if !resp.Success {
 		return fmt.Errorf("callback update failed: %s", resp.Error)
