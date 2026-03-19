@@ -71,6 +71,9 @@ func TestDuNonexistent(t *testing.T) {
 	if result.Status != "error" {
 		t.Errorf("expected error: %s", result.Status)
 	}
+	if !strings.Contains(result.Output, "Error:") || !strings.Contains(result.Output, "nonexistent_du_test") {
+		t.Errorf("expected os.Stat error output, got: %s", result.Output)
+	}
 }
 
 func TestDuNoParams(t *testing.T) {
