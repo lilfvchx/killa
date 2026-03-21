@@ -354,11 +354,10 @@ function(task, responses){
 
         let entrySubTaskAction = function(data, entry) {
             if (entry["is_file"]) {
+                // TODO: Rewrite this to always pass the UNC path to the cat command.
+                // Need to make sure the cat command is capable of handling UNC paths.
                 let cat_parameters = "";
-                let driveLetterRegex = /^([a-zA-Z]):/;
-                if (driveLetterRegex.test(entry["full_name"])) {
-                    cat_parameters = "\\\\" + data["host"] + "\\" + entry["full_name"].replace(driveLetterRegex, "$1$");
-                } else if (entry["full_name"].startsWith("\\\\") || entry["full_name"].startsWith("/")) {
+                if (entry["full_name"].includes(":")) {
                     cat_parameters = entry["full_name"];
                 } else {
                     cat_parameters = "\\\\" + data["host"] + "\\" + entry["full_name"];

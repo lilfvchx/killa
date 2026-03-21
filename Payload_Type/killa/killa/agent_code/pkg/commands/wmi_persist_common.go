@@ -38,10 +38,7 @@ func buildWQLTrigger(trigger string, intervalSec int, processName string) (strin
 		if processName == "" {
 			return "", fmt.Errorf("process_name required for process trigger")
 		}
-		// Escape backslashes first, then single quotes to prevent WQL injection
-		escapedProcessName := strings.ReplaceAll(processName, "\\", "\\\\")
-		escapedProcessName = strings.ReplaceAll(escapedProcessName, "'", "\\'")
-		return fmt.Sprintf("SELECT * FROM __InstanceCreationEvent WITHIN 15 WHERE TargetInstance ISA 'Win32_Process' AND TargetInstance.Name = '%s'", escapedProcessName), nil
+		return fmt.Sprintf("SELECT * FROM __InstanceCreationEvent WITHIN 15 WHERE TargetInstance ISA 'Win32_Process' AND TargetInstance.Name = '%s'", processName), nil
 	default:
 		return "", fmt.Errorf("unknown trigger: %s (use: logon, startup, interval, process)", trigger)
 	}
