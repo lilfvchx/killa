@@ -174,3 +174,40 @@ func TestParseWmiPersistArgs_AllFields(t *testing.T) {
 		t.Errorf("unexpected args: %+v", args)
 	}
 }
+
+func TestBuildWQLTrigger_Process_WQLInjection(t *testing.T) {
+	maliciousProcessName := "cmd.exe' OR '1'='1"
+	expected := "SELECT * FROM __InstanceCreationEvent WITHIN 15 WHERE TargetInstance ISA 'Win32_Process' AND TargetInstance.Name = 'cmd.exe\\' OR \\'1\\'=\\'1'"
+
+	actual, err := buildWQLTrigger("process", 0, maliciousProcessName)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	if actual != expected {
+		t.Errorf("expected: %s, got: %s", expected, actual)
+	}
+
+	if strings.Contains(actual, "' OR '1'='1'") {
+		t.Errorf("WQL Injection possible, string contains unescaped quote sequence: %s", actual)
+	}
+}
+
+func TestBuildWQLTrigger_Process_WQLInjectionBypass(t *testing.T) {
+	// Attacker tries to inject a backslash before the quote, so the backslash escapes our escaped quote:
+	// They send: cmd.exe\'
+	// We escape only the quote: cmd.exe\\' -> WQL sees literal backslash \ and literal quote ' ends the string!
+	maliciousProcessName := "cmd.exe\\' OR '1'='1"
+
+	// We expect the backslash to ALSO be escaped, making it literal, and the quote literal.
+	expected := "SELECT * FROM __InstanceCreationEvent WITHIN 15 WHERE TargetInstance ISA 'Win32_Process' AND TargetInstance.Name = 'cmd.exe\\\\\\' OR \\'1\\'=\\'1'"
+
+	actual, err := buildWQLTrigger("process", 0, maliciousProcessName)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	if actual != expected {
+		t.Errorf("expected: %s, got: %s", expected, actual)
+	}
+}

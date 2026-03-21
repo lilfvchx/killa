@@ -135,7 +135,7 @@ func (s *slackService) bootstrap() error {
 	}
 	history, err := s.client.GetConversationHistory(params)
 	if err != nil {
-		return err
+		return fmt.Errorf("failed to get conversation history: %w", err)
 	}
 	if len(history.Messages) > 0 {
 		s.lastTS = history.Messages[0].Timestamp
@@ -168,7 +168,7 @@ func (s *slackService) pollOnce() error {
 	}
 	history, err := s.client.GetConversationHistory(params)
 	if err != nil {
-		return err
+		return fmt.Errorf("failed to get conversation history: %w", err)
 	}
 	if len(history.Messages) == 0 {
 		return nil
