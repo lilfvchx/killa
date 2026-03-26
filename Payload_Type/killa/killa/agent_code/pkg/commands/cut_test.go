@@ -59,8 +59,8 @@ func TestCutChars(t *testing.T) {
 	if !strings.Contains(result.Output, "Hello") {
 		t.Fatalf("expected Hello, got: %s", result.Output)
 	}
-	if !strings.Contains(result.Output, "Fawke") {
-		t.Fatalf("expected Fawke, got: %s", result.Output)
+	if !strings.Contains(result.Output, "Killa") {
+		t.Fatalf("expected Killa, got: %s", result.Output)
 	}
 }
 
