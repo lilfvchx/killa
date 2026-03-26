@@ -9,6 +9,7 @@ import (
 	"strings"
 	"syscall"
 	"unsafe"
+	"golang.org/x/sys/windows"
 
 	"killa/pkg/structs"
 )

