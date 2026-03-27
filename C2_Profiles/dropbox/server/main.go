@@ -267,14 +267,14 @@ func (s *dropboxService) handleEnvelope(encoded string) (string, error) {
 func (s *dropboxService) uploadText(remotePath, content string) error {
 	req, err := http.NewRequest("POST", dropboxContent+"/files/upload", strings.NewReader(content))
 	if err != nil {
-		return err
+		return fmt.Errorf("create request: %w", err)
 	}
 	req.Header.Set("Authorization", "Bearer "+s.cfg.Token)
 	req.Header.Set("Content-Type", "application/octet-stream")
 	req.Header.Set("Dropbox-API-Arg", fmt.Sprintf(`{"path":"%s","mode":"overwrite","autorename":false,"mute":true}`, remotePath))
 	resp, err := s.client.Do(req)
 	if err != nil {
-		return err
+		return fmt.Errorf("do request: %w", err)
 	}
 	defer resp.Body.Close()
 	if resp.StatusCode != http.StatusOK {
