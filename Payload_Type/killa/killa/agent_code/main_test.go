@@ -445,7 +445,7 @@ func TestGuardedSleep_ActuallyWaits(t *testing.T) {
 	guardedSleep(duration)
 	elapsed := time.Since(before)
 
-	// Allow some slack (should be at least 75% of duration)
+	// Allow some discord (should be at least 75% of duration)
 	if elapsed < duration*3/4 {
 		t.Errorf("guardedSleep(%v) only waited %v", duration, elapsed)
 	}

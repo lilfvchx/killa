@@ -1,0 +1,29 @@
+--- C2_Profiles/discord/discord/c2functions/builder.go
++++ C2_Profiles/discord/discord/c2functions/builder.go
+@@ -34,7 +34,7 @@
+	{
+		Name:          "callback_interval",
+		Description:   "Base sleep interval in seconds.",
+-		DefaultValue:  10,
++		DefaultValue:  "10",
+		ParameterType: c2structs.C2_PARAMETER_TYPE_NUMBER,
+		Required:      false,
+		VerifierRegex: "^[0-9]+$",
+@@ -42,7 +42,7 @@
+	{
+		Name:          "callback_jitter",
+		Description:   "Sleep jitter percentage (0-100).",
+-		DefaultValue:  10,
++		DefaultValue:  "10",
+		ParameterType: c2structs.C2_PARAMETER_TYPE_NUMBER,
+		Required:      false,
+		VerifierRegex: "^[0-9]+$",
+@@ -62,7 +62,7 @@
+	{
+		Name:          "killdate",
+		Description:   "Kill Date",
+-		DefaultValue:  365,
++		DefaultValue:  "365",
+		ParameterType: c2structs.C2_PARAMETER_TYPE_DATE,
+		Required:      false,
+	},

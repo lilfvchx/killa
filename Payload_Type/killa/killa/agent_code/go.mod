@@ -7,6 +7,7 @@ require (
 	github.com/Ne0nd0g/go-clr v1.0.3
 	github.com/RIscRIpt/pecoff v0.0.0-20200923152459-a332238caa87
 	github.com/andybalholm/brotli v1.2.0
+	github.com/bwmarrin/discordgo v0.27.1
 	github.com/creack/pty v1.1.24
 	github.com/go-asn1-ber/asn1-ber v1.5.8-0.20250403174932-29230038a667
 	github.com/go-ldap/ldap/v3 v3.4.12
@@ -19,7 +20,6 @@ require (
 	github.com/oiweiwei/go-msrpc v1.2.16
 	github.com/refraction-networking/utls v1.8.2
 	github.com/shirou/gopsutil/v3 v3.24.5
-	github.com/slack-go/slack v0.14.0
 	github.com/stretchr/testify v1.11.1
 	golang.org/x/crypto v0.48.0
 	golang.org/x/sys v0.42.0
