@@ -29,12 +29,6 @@ type netLocalGroupArgs struct {
 	Server string `json:"server"`
 }
 
-// localGroupMembersInfo2 provides SID usage type (user vs group vs well-known)
-type localGroupMembersInfo2 struct {
-	SID           uintptr
-	SIDUsage      uint32
-	DomainAndName *uint16
-}
 
 func (c *NetLocalGroupCommand) Execute(task structs.Task) structs.CommandResult {
 	var args netLocalGroupArgs

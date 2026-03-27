@@ -15,7 +15,7 @@ import (
 
 var (
 	netapi32Ses          = windows.NewLazySystemDLL("netapi32.dll")
-	procNetSessionEnum   = netapi32Ses.NewProc("NetSessionEnum")
+
 	procNetApiBufFreeSes = netapi32Ses.NewProc("NetApiBufferFree")
 )
 
@@ -38,23 +38,8 @@ type smbSessionEntry struct {
 }
 
 // SESSION_INFO_10 structure (level 10 — doesn't require admin)
-type sessionInfo10 struct {
-	ClientName uintptr // LPWSTR
-	UserName   uintptr // LPWSTR
-	Time       uint32  // seconds connected
-	IdleTime   uint32  // seconds idle
-}
 
 // SESSION_INFO_502 structure (level 502 — requires admin, has transport info)
-type sessionInfo502 struct {
-	ClientName uintptr // LPWSTR
-	UserName   uintptr // LPWSTR
-	NumOpens   uint32  // open files/resources
-	Time       uint32  // seconds connected
-	IdleTime   uint32  // seconds idle
-	UserFlags  uint32  // user flags
-	ClientType uintptr // LPWSTR — transport name
-}
 
 func (c *NetSessionCommand) Execute(task structs.Task) structs.CommandResult {
 	var args netSessionArgs

@@ -55,13 +55,34 @@ func scanProcessMemory(pid int, searchBytes []byte, maxResults int, contextBytes
 	mbiSize := unsafe.Sizeof(mbi)
 
 	for len(matches) < maxResults {
-		// Query next memory region
-		ret, _, _ := procVirtualQueryExMS.Call(
-			uintptr(handle),
-			addr,
-			uintptr(unsafe.Pointer(&mbi)),
-			mbiSize,
-		)
+		// Query next memory region using indirect syscalls if available
+		var ret uint32
+		if IndirectSyscallsAvailable() {
+			var returnLength uintptr
+			// MemoryBasicInformation is class 0
+			status := IndirectNtQueryVirtualMemory(
+				uintptr(handle),
+				addr,
+				0, // MemoryBasicInformation
+				uintptr(unsafe.Pointer(&mbi)),
+				mbiSize,
+				&returnLength,
+			)
+			if status == 0 { // STATUS_SUCCESS
+				ret = 1 // simulate VirtualQueryEx success
+			} else {
+				ret = 0
+			}
+		} else {
+			r, _, _ := procVirtualQueryExMS.Call(
+				uintptr(handle),
+				addr,
+				uintptr(unsafe.Pointer(&mbi)),
+				mbiSize,
+			)
+			ret = uint32(r)
+		}
+
 		if ret == 0 {
 			break // No more regions
 		}
@@ -101,15 +122,32 @@ func scanProcessMemory(pid int, searchBytes []byte, maxResults int, contextBytes
 			buf := make([]byte, chunkSize)
 			var bytesRead uintptr
 
-			ret, _, _ := procReadProcessMemoryMS.Call(
-				uintptr(handle),
-				regionBase+(mbi.RegionSize-remaining),
-				uintptr(unsafe.Pointer(&buf[0])),
-				chunkSize,
-				uintptr(unsafe.Pointer(&bytesRead)),
-			)
+			var readRet uint32
+			if IndirectSyscallsAvailable() {
+				status := IndirectNtReadVirtualMemory(
+					uintptr(handle),
+					regionBase+(mbi.RegionSize-remaining),
+					uintptr(unsafe.Pointer(&buf[0])),
+					chunkSize,
+					&bytesRead,
+				)
+				if status == 0 { // STATUS_SUCCESS
+					readRet = 1
+				} else {
+					readRet = 0
+				}
+			} else {
+				r, _, _ := procReadProcessMemoryMS.Call(
+					uintptr(handle),
+					regionBase+(mbi.RegionSize-remaining),
+					uintptr(unsafe.Pointer(&buf[0])),
+					chunkSize,
+					uintptr(unsafe.Pointer(&bytesRead)),
+				)
+				readRet = uint32(r)
+			}
 
-			if ret == 0 || bytesRead == 0 {
+			if readRet == 0 || bytesRead == 0 {
 				break // Can't read this chunk
 			}
 

@@ -32,57 +32,21 @@ type netSharesArgs struct {
 var (
 	netapi32NS          = windows.NewLazySystemDLL("netapi32.dll")
 	mprNS               = windows.NewLazySystemDLL("mpr.dll")
-	procNetShareEnum    = netapi32NS.NewProc("NetShareEnum")
+
 	procNetApiBufFreeNS = netapi32NS.NewProc("NetApiBufferFree")
-	procWNetOpenEnum    = mprNS.NewProc("WNetOpenEnumW")
-	procWNetEnumRes     = mprNS.NewProc("WNetEnumResourceW")
-	procWNetCloseEnum   = mprNS.NewProc("WNetCloseEnum")
+
 )
 
 const (
-	STYPE_DISKTREE  = 0x00000000
-	STYPE_PRINTQ    = 0x00000001
-	STYPE_DEVICE    = 0x00000002
-	STYPE_IPC       = 0x00000003
-	STYPE_SPECIAL   = 0x80000000
-	STYPE_TEMPORARY = 0x40000000
-	STYPE_MASK      = 0x000000FF
 
 	// WNet resource types
-	RESOURCETYPE_DISK  = 0x00000001
-	RESOURCE_CONNECTED = 0x00000001
 )
 
 // SHARE_INFO_2 structure
-type shareInfo2 struct {
-	Name        *uint16
-	Type        uint32
-	Remark      *uint16
-	Permissions uint32
-	MaxUses     uint32
-	CurrentUses uint32
-	Path        *uint16
-	Passwd      *uint16
-}
 
 // SHARE_INFO_1 structure (for remote shares — no path/permissions)
-type shareInfo1 struct {
-	Name   *uint16
-	Type   uint32
-	Remark *uint16
-}
 
 // NETRESOURCE structure for WNet functions
-type netResource struct {
-	Scope       uint32
-	Type        uint32
-	DisplayType uint32
-	Usage       uint32
-	LocalName   *uint16
-	RemoteName  *uint16
-	Comment     *uint16
-	Provider    *uint16
-}
 
 type shareOutputEntry struct {
 	Name     string `json:"name"`

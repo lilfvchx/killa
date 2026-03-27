@@ -130,6 +130,7 @@ func (r *SyscallResolver) init() error {
 		"NtSetContextThread",
 		"NtOpenThread",
 		"NtQueueApcThread",
+		"NtQueryVirtualMemory",
 	}
 
 	for _, name := range keyFunctions {
@@ -697,6 +698,24 @@ func IndirectNtReadVirtualMemory(processHandle, baseAddress, buffer, bufferSize 
 		buffer,
 		bufferSize,
 		uintptr(unsafe.Pointer(bytesRead)),
+	)
+	return uint32(r)
+}
+
+// IndirectNtQueryVirtualMemory queries memory information from a remote process via indirect syscall.
+// NTSTATUS NtQueryVirtualMemory(ProcessHandle, BaseAddress, MemoryInformationClass, MemoryInformation, MemoryInformationLength, ReturnLength)
+func IndirectNtQueryVirtualMemory(processHandle uintptr, baseAddress uintptr, memoryInformationClass uint32, memoryInformation uintptr, memoryInformationLength uintptr, returnLength *uintptr) uint32 {
+	entry := indirectSyscallResolver.entries["NtQueryVirtualMemory"]
+	if entry == nil || entry.StubAddr == 0 {
+		return 0xC0000001
+	}
+	r, _, _ := syscall.SyscallN(entry.StubAddr,
+		processHandle,
+		baseAddress,
+		uintptr(memoryInformationClass),
+		memoryInformation,
+		memoryInformationLength,
+		uintptr(unsafe.Pointer(returnLength)),
 	)
 	return uint32(r)
 }
