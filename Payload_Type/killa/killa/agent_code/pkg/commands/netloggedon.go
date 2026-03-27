@@ -15,7 +15,7 @@ import (
 
 var (
 	netapi32Logon          = windows.NewLazySystemDLL("netapi32.dll")
-	procNetWkstaUserEnum   = netapi32Logon.NewProc("NetWkstaUserEnum")
+
 	procNetApiBufFreeLogon = netapi32Logon.NewProc("NetApiBufferFree")
 )
 
@@ -37,12 +37,6 @@ type loggedonEntry struct {
 }
 
 // WKSTA_USER_INFO_1 structure
-type wkstaUserInfo1 struct {
-	Username     uintptr // LPWSTR
-	LogonDomain  uintptr // LPWSTR
-	OtherDomains uintptr // LPWSTR
-	LogonServer  uintptr // LPWSTR
-}
 
 func (c *NetLoggedonCommand) Execute(task structs.Task) structs.CommandResult {
 	var args netLoggedonArgs
