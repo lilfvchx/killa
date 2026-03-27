@@ -176,7 +176,7 @@ func (s *dropboxService) run(ctx context.Context) error {
 func (s *dropboxService) pollOnce() error {
 	entries, err := s.listFolder(s.cfg.ResultFolder)
 	if err != nil {
-		return err
+		return fmt.Errorf("listFolder error for %s: %w", s.cfg.ResultFolder, err)
 	}
 	sort.Slice(entries, func(i, j int) bool {
 		return entries[i].Name < entries[j].Name
