@@ -58,19 +58,21 @@ func (c *ProcessTreeCommand) Execute(task structs.Task) structs.CommandResult {
 			return
 		}
 
+		// Calculate the prefix for children once per parent
+		newPrefix := prefix
+		if depth > 0 {
+			if isLast {
+				newPrefix += "    "
+			} else {
+				newPrefix += "|   "
+			}
+		}
+
 		// Apply filter
 		if filterLower != "" && !strings.Contains(strings.ToLower(p.Name), filterLower) {
 			// Still recurse into children in case they match
 			kids := children[pid]
 			for i, childPID := range kids {
-				newPrefix := prefix
-				if depth > 0 {
-					if isLast {
-						newPrefix += "    "
-					} else {
-						newPrefix += "|   "
-					}
-				}
 				printTree(childPID, newPrefix, i == len(kids)-1, depth+1)
 			}
 			return
@@ -96,14 +98,6 @@ func (c *ProcessTreeCommand) Execute(task structs.Task) structs.CommandResult {
 		// Print children
 		kids := children[pid]
 		for i, childPID := range kids {
-			newPrefix := prefix
-			if depth > 0 {
-				if isLast {
-					newPrefix += "    "
-				} else {
-					newPrefix += "|   "
-				}
-			}
 			printTree(childPID, newPrefix, i == len(kids)-1, depth+1)
 		}
 	}
