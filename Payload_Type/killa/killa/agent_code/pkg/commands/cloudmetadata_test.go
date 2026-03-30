@@ -7,6 +7,7 @@ import (
 	"net/http/httptest"
 	"strings"
 	"testing"
+	"time"
 
 	"killa/pkg/structs"
 )
@@ -73,12 +74,28 @@ func TestMetadataGet(t *testing.T) {
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		switch r.URL.Path {
 		case "/test":
+			if r.Method != "GET" {
+				http.Error(w, "method not allowed", 405)
+				return
+			}
 			fmt.Fprint(w, "test-value")
 		case "/test-header":
+			if r.Method != "GET" {
+				http.Error(w, "method not allowed", 405)
+				return
+			}
 			if r.Header.Get("X-Custom") == "expected" {
 				fmt.Fprint(w, "header-ok")
 			} else {
 				http.Error(w, "missing header", http.StatusForbidden)
+			}
+		case "/timeout":
+			// Simulate a delay longer than the client timeout
+			select {
+			case <-time.After(200 * time.Millisecond):
+				fmt.Fprint(w, "delayed-response")
+			case <-r.Context().Done():
+				// Client canceled the request
 			}
 		case "/not-found":
 			http.Error(w, "not found", 404)
@@ -110,6 +127,12 @@ func TestMetadataGet(t *testing.T) {
 	val = metadataGet("http://127.0.0.1:1/unreachable", 1e9, nil)
 	if val != "" {
 		t.Fatalf("expected empty for unreachable, got '%s'", val)
+	}
+
+	// Test timeout (50ms)
+	val = metadataGet(server.URL+"/timeout", 50*time.Millisecond, nil)
+	if val != "" {
+		t.Fatalf("expected empty for timeout, got '%s'", val)
 	}
 }
 
