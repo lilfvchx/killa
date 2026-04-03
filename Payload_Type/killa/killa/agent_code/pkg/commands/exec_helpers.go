@@ -34,9 +34,9 @@ func execCmdCtx(name string, args ...string) (*exec.Cmd, context.CancelFunc) {
 // Avoids fixed timing signatures that EDR behavioral analysis can detect.
 func jitterSleep(min, max time.Duration) {
 	if max <= min {
-		time.Sleep(min)
+		AgentSleep(min)
 		return
 	}
 	jitter := time.Duration(rand.Int63n(int64(max - min)))
-	time.Sleep(min + jitter)
+	AgentSleep(min + jitter)
 }

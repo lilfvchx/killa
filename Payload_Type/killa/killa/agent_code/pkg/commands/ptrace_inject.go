@@ -330,7 +330,7 @@ func ptraceInject(args ptraceInjectArgs) structs.CommandResult {
 				stopped = true
 				break
 			}
-			time.Sleep(50 * time.Millisecond)
+			AgentSleep(50 * time.Millisecond)
 		}
 
 		if !stopped {
