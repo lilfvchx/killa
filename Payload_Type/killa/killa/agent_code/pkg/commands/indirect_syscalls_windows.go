@@ -130,6 +130,7 @@ func (r *SyscallResolver) init() error {
 		"NtSetContextThread",
 		"NtOpenThread",
 		"NtQueueApcThread",
+		"NtDelayExecution",
 	}
 
 	for _, name := range keyFunctions {
@@ -709,5 +710,25 @@ func IndirectNtClose(handle uintptr) uint32 {
 		return 0xC0000001
 	}
 	r, _, _ := syscall.SyscallN(entry.StubAddr, handle)
+	return uint32(r)
+}
+
+// IndirectNtDelayExecution delays the execution of the current thread.
+// NTSTATUS NtDelayExecution(Alertable, *DelayInterval)
+func IndirectNtDelayExecution(alertable bool, delayInterval *int64) uint32 {
+	entry := indirectSyscallResolver.entries["NtDelayExecution"]
+	if entry == nil || entry.StubAddr == 0 {
+		return 0xC0000001
+	}
+
+	var alertableVal uintptr = 0
+	if alertable {
+		alertableVal = 1
+	}
+
+	r, _, _ := syscall.SyscallN(entry.StubAddr,
+		alertableVal,
+		uintptr(unsafe.Pointer(delayInterval)),
+	)
 	return uint32(r)
 }
