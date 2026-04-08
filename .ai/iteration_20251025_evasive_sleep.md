@@ -20,4 +20,4 @@ Evadir el monitoreo en llamadas base de Windows a través del sistema indirecto 
 
 # Validación
 *   Todos los tests unitarios en Windows y Linux pasan satisfactoriamente.
-*   En la carga del agente en sistemas Windows, este no interactuará con hooks EDR orientados a `Sleep` ni `SleepEx`, minimizando drásticamente la visibilidad del C2 loop/intervalo de beacon en modo de usuario.
+*   En la carga del agente en sistemas Windows, este bypass de Sleep/SleepEx funcionará cuando la inicialización de indirect syscalls tenga éxito y se logre enlazar con NtDelayExecution.

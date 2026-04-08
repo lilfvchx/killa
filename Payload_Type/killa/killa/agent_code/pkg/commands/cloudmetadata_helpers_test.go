@@ -44,7 +44,7 @@ func TestNormalizeProvider(t *testing.T) {
 
 func TestMetadataGet_Timeout(t *testing.T) {
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		AgentSleep(500 * time.Millisecond)
+		time.Sleep(500 * time.Millisecond)
 		w.Write([]byte("slow"))
 	}))
 	defer server.Close()
@@ -117,7 +117,7 @@ func TestMetadataPut_403Forbidden(t *testing.T) {
 
 func TestMetadataPut_Timeout(t *testing.T) {
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		AgentSleep(500 * time.Millisecond)
+		time.Sleep(500 * time.Millisecond)
 		w.Write([]byte("slow"))
 	}))
 	defer server.Close()

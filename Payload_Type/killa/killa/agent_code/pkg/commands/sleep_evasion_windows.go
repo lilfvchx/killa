@@ -18,5 +18,7 @@ func AgentSleep(d time.Duration) {
 	// DelayInterval is in 100-nanosecond intervals. A negative value specifies relative time.
 	interval := -int64(d / (time.Nanosecond * 100))
 
-	IndirectNtDelayExecution(0, &interval)
+	if status := IndirectNtDelayExecution(0, &interval); status != 0 {
+		time.Sleep(d)
+	}
 }

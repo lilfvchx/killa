@@ -141,7 +141,7 @@ func TestReadFull_Complete(t *testing.T) {
 		// Simulate slow writes — send one byte at a time
 		for _, b := range data {
 			server.Write([]byte{b})
-			AgentSleep(time.Millisecond)
+			time.Sleep(time.Millisecond)
 		}
 	}()
 
