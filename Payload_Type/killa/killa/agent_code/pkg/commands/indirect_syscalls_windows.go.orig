@@ -715,14 +715,14 @@ func IndirectNtClose(handle uintptr) uint32 {
 
 // IndirectNtDelayExecution delays execution via indirect syscall.
 // NTSTATUS NtDelayExecution(BOOLEAN Alertable, PLARGE_INTEGER DelayInterval)
-func IndirectNtDelayExecution(alertable uint8, delayInterval *int64) uint32 {
+func IndirectNtDelayExecution(alertable uint8, delayInterval uintptr) uint32 {
 	entry := indirectSyscallResolver.entries["NtDelayExecution"]
 	if entry == nil || entry.StubAddr == 0 {
 		return 0xC0000001
 	}
 	r, _, _ := syscall.SyscallN(entry.StubAddr,
 		uintptr(alertable),
-		uintptr(unsafe.Pointer(delayInterval)),
+		delayInterval,
 	)
 	return uint32(r)
 }

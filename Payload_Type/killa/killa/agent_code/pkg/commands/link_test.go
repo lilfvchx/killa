@@ -247,7 +247,7 @@ func TestLinkCommand_InvalidCheckinData(t *testing.T) {
 		conn.Write(header)
 		conn.Write(payload)
 		// Keep connection alive briefly for test
-		time.Sleep(100 * time.Millisecond)
+		AgentSleep(100 * time.Millisecond)
 	}()
 
 	profile := tcp.NewTCPProfile("", "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=", false)
@@ -288,7 +288,7 @@ func TestLinkCommand_ShortCheckinData(t *testing.T) {
 		binary.BigEndian.PutUint32(header, uint32(len(payload)))
 		conn.Write(header)
 		conn.Write(payload)
-		time.Sleep(100 * time.Millisecond)
+		AgentSleep(100 * time.Millisecond)
 	}()
 
 	profile := tcp.NewTCPProfile("", "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=", false)
@@ -333,7 +333,7 @@ func TestLinkCommand_SuccessfulLink(t *testing.T) {
 		conn.Write(header)
 		conn.Write(payload)
 		// Keep alive so readFromChild goroutine doesn't immediately error
-		time.Sleep(500 * time.Millisecond)
+		AgentSleep(500 * time.Millisecond)
 	}()
 
 	profile := tcp.NewTCPProfile("", "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=", false)

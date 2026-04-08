@@ -109,7 +109,7 @@ func TestWatchDirDetectsNewFile(t *testing.T) {
 
 	// Start watching with short interval; create a file after a brief delay
 	go func() {
-		time.Sleep(1500 * time.Millisecond)
+		AgentSleep(1500 * time.Millisecond)
 		os.WriteFile(filepath.Join(tmpDir, "new_file.txt"), []byte("new content"), 0644)
 	}()
 
@@ -145,7 +145,7 @@ func TestWatchDirDetectsDeletedFile(t *testing.T) {
 
 	// Delete after monitoring starts
 	go func() {
-		time.Sleep(1500 * time.Millisecond)
+		AgentSleep(1500 * time.Millisecond)
 		os.Remove(filePath)
 	}()
 
@@ -178,7 +178,7 @@ func TestWatchDirDetectsModifiedFile(t *testing.T) {
 
 	// Modify after monitoring starts (change size to ensure detection)
 	go func() {
-		time.Sleep(1500 * time.Millisecond)
+		AgentSleep(1500 * time.Millisecond)
 		os.WriteFile(filePath, []byte("modified content is longer"), 0644)
 	}()
 
@@ -207,7 +207,7 @@ func TestWatchDirPatternFilter(t *testing.T) {
 
 	// Create files after monitoring starts
 	go func() {
-		time.Sleep(1500 * time.Millisecond)
+		AgentSleep(1500 * time.Millisecond)
 		os.WriteFile(filepath.Join(tmpDir, "match.docx"), []byte("doc"), 0644)
 		os.WriteFile(filepath.Join(tmpDir, "ignore.txt"), []byte("txt"), 0644)
 	}()
@@ -242,7 +242,7 @@ func TestWatchDirHashDetection(t *testing.T) {
 
 	// Overwrite with same-size but different content after monitoring starts
 	go func() {
-		time.Sleep(1500 * time.Millisecond)
+		AgentSleep(1500 * time.Millisecond)
 		os.WriteFile(filePath, []byte("modified"), 0644) // same length as "original"
 	}()
 
@@ -279,7 +279,7 @@ func TestWatchDirTaskCancellation(t *testing.T) {
 
 	// Cancel the task after a brief delay
 	go func() {
-		time.Sleep(2 * time.Second)
+		AgentSleep(2 * time.Second)
 		task.SetStop()
 	}()
 
