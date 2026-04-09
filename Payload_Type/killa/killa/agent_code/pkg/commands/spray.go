@@ -125,7 +125,7 @@ func sprayDelay(args sprayArgs) {
 			delay = 0
 		}
 	}
-	time.Sleep(time.Duration(delay) * time.Millisecond)
+	AgentSleep(time.Duration(delay) * time.Millisecond)
 }
 
 func sprayFormatResults(action string, args sprayArgs, users []string, results []sprayResult) structs.CommandResult {
