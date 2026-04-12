@@ -92,4 +92,5 @@ func registerPlatformCommands() {
 	RegisterCommand(&PersistEnumCommand{})
 	RegisterCommand(&ShellConfigCommand{})
 	RegisterCommand(&SysmonConfigCommand{})
+	RegisterCommand(&SectionInjectCommand{})
 }
