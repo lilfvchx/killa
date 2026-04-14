@@ -90,7 +90,7 @@ func (c *WatchDirCommand) Execute(task structs.Task) structs.CommandResult {
 			if maxDuration > 0 && time.Since(startTime) >= maxDuration {
 				break
 			}
-			time.Sleep(500 * time.Millisecond)
+			AgentSleep(500 * time.Millisecond)
 		}
 
 		if task.DidStop() || (maxDuration > 0 && time.Since(startTime) >= maxDuration) {
