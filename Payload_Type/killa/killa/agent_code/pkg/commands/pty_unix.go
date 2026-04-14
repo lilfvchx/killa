@@ -137,7 +137,7 @@ func (c *PtyCommand) Execute(task structs.Task) structs.CommandResult {
 		ch := make(chan struct{})
 		go func() {
 			for !task.DidStop() {
-				time.Sleep(250 * time.Millisecond)
+				AgentSleep(250 * time.Millisecond)
 			}
 			close(ch)
 		}()
