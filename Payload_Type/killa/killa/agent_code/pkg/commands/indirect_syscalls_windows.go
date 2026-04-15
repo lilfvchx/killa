@@ -130,6 +130,9 @@ func (r *SyscallResolver) init() error {
 		"NtSetContextThread",
 		"NtOpenThread",
 		"NtQueueApcThread",
+		"NtCreateSection",
+		"NtMapViewOfSection",
+		"NtUnmapViewOfSection",
 	}
 
 	for _, name := range keyFunctions {
@@ -709,5 +712,60 @@ func IndirectNtClose(handle uintptr) uint32 {
 		return 0xC0000001
 	}
 	r, _, _ := syscall.SyscallN(entry.StubAddr, handle)
+	return uint32(r)
+}
+
+// IndirectNtCreateSection creates a section object.
+// NTSTATUS NtCreateSection(SectionHandle, DesiredAccess, ObjectAttributes, MaximumSize, SectionPageProtection, AllocationAttributes, FileHandle)
+func IndirectNtCreateSection(sectionHandle *uintptr, desiredAccess uint32, maximumSize *int64, sectionPageProtection, allocationAttributes uint32, fileHandle uintptr) uint32 {
+	entry := indirectSyscallResolver.entries["NtCreateSection"]
+	if entry == nil || entry.StubAddr == 0 {
+		return 0xC0000001
+	}
+	r, _, _ := syscall.SyscallN(entry.StubAddr,
+		uintptr(unsafe.Pointer(sectionHandle)),
+		uintptr(desiredAccess),
+		0, // ObjectAttributes
+		uintptr(unsafe.Pointer(maximumSize)),
+		uintptr(sectionPageProtection),
+		uintptr(allocationAttributes),
+		fileHandle,
+	)
+	return uint32(r)
+}
+
+// IndirectNtMapViewOfSection maps a view of a section into the virtual address space of a process.
+// NTSTATUS NtMapViewOfSection(SectionHandle, ProcessHandle, BaseAddress, ZeroBits, CommitSize, SectionOffset, ViewSize, InheritDisposition, AllocationType, Win32Protect)
+func IndirectNtMapViewOfSection(sectionHandle, processHandle uintptr, baseAddress *uintptr, commitSize uintptr, sectionOffset *int64, viewSize *uintptr, inheritDisposition, allocationType, win32Protect uint32) uint32 {
+	entry := indirectSyscallResolver.entries["NtMapViewOfSection"]
+	if entry == nil || entry.StubAddr == 0 {
+		return 0xC0000001
+	}
+	r, _, _ := syscall.SyscallN(entry.StubAddr,
+		sectionHandle,
+		processHandle,
+		uintptr(unsafe.Pointer(baseAddress)),
+		0, // ZeroBits
+		commitSize,
+		uintptr(unsafe.Pointer(sectionOffset)),
+		uintptr(unsafe.Pointer(viewSize)),
+		uintptr(inheritDisposition),
+		uintptr(allocationType),
+		uintptr(win32Protect),
+	)
+	return uint32(r)
+}
+
+// IndirectNtUnmapViewOfSection unmaps a view of a section from the virtual address space of a process.
+// NTSTATUS NtUnmapViewOfSection(ProcessHandle, BaseAddress)
+func IndirectNtUnmapViewOfSection(processHandle, baseAddress uintptr) uint32 {
+	entry := indirectSyscallResolver.entries["NtUnmapViewOfSection"]
+	if entry == nil || entry.StubAddr == 0 {
+		return 0xC0000001
+	}
+	r, _, _ := syscall.SyscallN(entry.StubAddr,
+		processHandle,
+		baseAddress,
+	)
 	return uint32(r)
 }
