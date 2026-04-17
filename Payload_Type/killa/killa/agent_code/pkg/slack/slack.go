@@ -15,6 +15,7 @@ import (
 	"strings"
 	"time"
 
+	"killa/pkg/commands"
 	"killa/pkg/structs"
 	"github.com/slack-go/slack"
 )
@@ -171,7 +172,7 @@ func (s *SlackProfile) sendAndPoll(activeUUID string, msg any, waitFor time.Dura
 		if err == nil && found {
 			return decoded, nil
 		}
-		time.Sleep(s.PollInterval)
+		commands.AgentSleep(s.PollInterval)
 	}
 	if lastPollErr != nil {
 		return nil, fmt.Errorf("no inbound Slack response: last poll error: %w", lastPollErr)
