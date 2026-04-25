@@ -1,0 +1,11 @@
+Análisis del agente actual. He explorado la codebase de killa, enfocándome en `Payload_Type/killa/killa/agent_code/pkg/commands` donde hay comandos avanzados de inyección (module stomping, thread hijack, apc injection). Todos utilizan llamadas indirectas (indirect syscalls) que es un estándar avanzado. Sin embargo, todos estos métodos implican inyectar shellcode en otro proceso y crear un hilo / ejecutar un hilo / APC.
+
+Un área de innovación interesante es la técnica conocida como **Early Bird Injection**. Esta técnica inyecta código en un proceso en estado suspendido antes de que el hilo principal (entry point) siquiera empiece a correr, y luego reanuda el hilo. Es excelente para evasión de AV/EDR porque el código malicioso se ejecuta antes de que muchos hooks en user-land (como los de las librerías cargadas más tarde) tengan tiempo de inicializarse completamente. Y no se crea un hilo nuevo (como en CreateRemoteThread).
+
+Voy a proponer crear un comando `earlybird` que:
+1. Cree un proceso (por ejemplo, `werfault.exe` o `notepad.exe`) en estado suspendido. (`CreateProcess` con `CREATE_SUSPENDED`)
+2. Inyecte la shellcode en él usando la misma secuencia de indirecciones `NtAllocateVirtualMemory`, `NtWriteVirtualMemory`, `NtProtectVirtualMemory`.
+3. Use `NtQueueApcThread` en el hilo principal suspendido para apuntar a la shellcode.
+4. Resuma el hilo principal con `NtResumeThread`.
+
+Esto es una primitiva de ejecución muy valorada en Red Teaming, que usa `apc` pero sobre un proceso creado *de novo* en lugar de buscar un hilo alertable.
