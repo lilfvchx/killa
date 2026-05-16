@@ -11,6 +11,7 @@ func registerPlatformCommands() {
 	RegisterCommand(&InlineAssemblyCommand{})
 	RegisterCommand(&InlineExecuteCommand{})
 	RegisterCommand(&VanillaInjectionCommand{})
+	RegisterCommand(&SectionInjectionCommand{})
 	RegisterCommand(&ThreadlessInjectCommand{})
 	RegisterCommand(&MakeTokenCommand{})
 	RegisterCommand(&StealTokenCommand{})
